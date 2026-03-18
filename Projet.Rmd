@@ -1,0 +1,817 @@
+---
+title: "Projet d'Econométrie : les facteurs explicatifs de la densité de médecins libéraux sur le territoire français."  
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+    number_sections: TRUE
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE) #Activer le cache des chunks pour accélérer les recompilations
+options("install.lock"=FALSE) #Désactiver le verrouillage d’installation des packages
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) ## configure le chemin du dossier automatiquement
+```
+
+**NOM - Prénom**
+
+MAMOUN Abderrahmane
+
+FERREIRA Nicolas
+
+[**Master 1 MAS - Université de Rennes**](https://eco.univ-rennes.fr/master-mathematiques-appliquees-statistique)
+
+# Introduction
+
+-   Contexte et problématique
+
+    D’après Legendre [1], 6% des territoires français sont sous-dotés de médecins généralistes. En effet, la raison de cette inégalité est dûe à un décalage entre l’offre et la demande de soins. La diminution globale du nombre de médecins en activité est sensiblement causée par de nombreux départs à la retraite, et des numerus clausus de la génération 1970-1980. Ainsi, cela résulte en une baisse de 3,3% consultations par an pour la population française en 2018 par rapport à 2015.
+
+    Les territoires les mieux dotés en médecins généralistes sont aussi les plus attractifs, ce qui est notamment mentionné par Bui et Lévy [2], qui exposent que 81% des jeunes médecins généralistes choisissent leur lieu d’installation en fonction de l’aménagement et de l’attractivité du lieu. 
+
+    Ainsi, nous allons observer dans ce dossier, la corrélation entre certaines variables quantitatives, et qualitatives,  et la densité de médecins généralistes libéraux en fonction de la zone géographique. 
+
+    Donc, cela nous amène à établir la problématique suivante : quels facteurs expliquent la densité de médecins généralistes libéraux par zones d’emplois ?
+
+-   Motivation et intérêt du sujet
+
+    Notre motivation concernant le choix du sujet nous vient d’un constat simple :  la problématique de l’accès aux soins s’impose désormais comme un enjeu majeur de notre société. Certaines inégalités sont observées et le terme de “désert médical” est employé par notre société, pour qualifier l’absence ou le manque de médecins dans une zone géographique donnée. 
+
+    Plus généralement, un désert médical, par définition, “suggère une différence de nature entre des territoires dans lesquels l’accès aux soins serait nul et d’autres territoires plus favorisés.” [3].   
+
+    Ainsi, l'intérêt principal réside dans la spécification et l'estimation d'un modèle économétrique visant à isoler les déterminants de l'offre de soins sur un territoire donné.
+
+-   Questions de recherche ou hypothèses
+
+    L’une des hypothèses ayant guidé le choix de certaines variables est que les zones d’emploi où le revenu disponible médian est plus élevé attirent davantage de médecins généralistes libéraux. De plus, une autre hypothèse de corrélation positive avec la densité de médecins libéraux nous vient de Delattre & Samson [2] : la proportion de patients, et dans notre cas les personnes plus âgées, ce que relève Magali Dumontet [4], donc demandant plus de soins, pourrait influer sur la présence de médecins dans la zone.
+
+    Ainsi, l’une des questions concernant les facteurs démographiques et socio-économiques relevant de ces hypothèses est : quelle est la corrélation entre des variables démographiques (par exemple, la densité de population totale) et la densité de médecins généralistes libéraux au sein des zones d'emploi ?
+
+    Une autre question agissant sur l’affluence de médecins libéraux concerne les infrastructures : Les zones d'emploi disposant de meilleures infrastructures (par exemple, la proximité de CHU, la présence d'écoles) présentent-elles une densité de médecins généralistes libéraux significativement plus élevée ?
+
+-   Objectifs et contributions du mémoire
+
+    A travers les hypothèses que nous avons formulées, l’un des objectifs est de définir un modèle économétrique pertinent visant à expliquer la densité de médecins généralistes libéraux en fonction de multiples facteurs dans les différentes zones d'emploi. Pour réaliser cet objectif nous allons quantifier les facteurs déterminants et mesurer l'ampleur de l'influence de variables clés tels que le taux de chômage ou la présence d’infrastructures sur la densité de l’offre de soins d’un point de vue libéral.
+
+    Ce mémoire va également viser à déterminer les facteurs déterminants, en comparaison avec la totalité de facteurs choisis, et à trier les données selon une même donnée démographique, ici les zones d’emplois.
+
+-   Le plan afin d'aborder cette pronlématique se décline de la façon suivante :
+
+    Nous allons tout d'abord présenter le cadre méthodologique à partir des notions de modélisation économique vues en cours, puis nous présenterons nos données et allons réaliser une analyse descriptive de celles-ci. Puis nous, évaluerons notamment la robustesse de notre modèle et effectuerons des tests pour valider ou invalider les hypothèses des Moindres Carrrés Ordinaires relatives à notre modèle. Enfin une conclusion présentant une synthèse de nos résultats sera exposée.
+
+# Cadre méthodologique
+
+-   Ce projet s'inscrit dans le cadre d'un cours de modélisation économique et repose sur la modélisation d'une relation linéaire entre la densité de médecins libéraux et un ensemble de facteurs suceptibles d'influencer leur implantation.
+
+    Le modèle linéaire multiple permet de représenter un phénomène y=f(x) en combinant plusieurs déterminants
+
+    Un modèle linéaire classique est de la forme suivante :\
+    $$
+    Y = \beta_0 + \beta_1 X_1 + \dots + \beta_k X_k + \varepsilon
+    $$\
+    La relation entre la variable dépendante $Y$ et les variables explicatives $X_i$ est linéaire en paramètres $\beta_i$.
+
+    L'estimation s'appuie sur la méthode des Moindres Carrés Ordinaires, consistant à minimiser la somme des écarts au carré entre les variables observées et les variables à expliquer.
+
+    La méthodes des MCO repose donc sur l'estimation de $\beta_i$ et $\epsilon$ sur plusieurs hypothèses telles que :
+
+    1.  Linéarité
+
+    2.  Exogénéité (pas de corrélation avec l'erreur)\
+        $$
+        E[\varepsilon_i] = 0
+        $$\
+        Les variables explicatives $X_i$ ne doivent pas être corrélées avec le terme d'erreur $\varepsilon_i$.
+
+    3.  Homoscédasticité\
+        $$
+        \text{Var}(\varepsilon_i) = \sigma^2
+        $$\
+        La variance des erreurs est constante pour toutes les observations. Si ce n'est pas le cas, on parle d'hétéroscédasticité.
+
+    4.  Indépendance et non-autocorrélation des erreurs\
+        $$
+        \text{Cov}(\varepsilon_i, \varepsilon_j) = 0 \quad \text{pour } i \neq j
+        $$\
+        Les erreurs doivent être indépendantes entre elles.
+
+    Dans ce cadre, la densité de médecins libéraux est exprimée comme une fonction linéaire des variables démographiques (densité de population, part des 75 ans et plus), économiques (taux d’activité, part imposable) et structurelles (présence d’une université, densité d’autres professionnels de santé). Le modèle retenu est donc le suivant :
+
+-   $\text{DENS_MED_LIB}_i = \beta_0 + \beta_1 \, \text{DENSITE}_i+ \beta_2 \, \text{PART_75}_i+ \beta_3 \, \text{TAUX_ACTIV}_i+ \beta_4 \, \text{PART_IMPOT}_i+ \beta_5 \, \text{PART_TRANS_COMM}_i+ \beta_6 \, \text{UNIV}_i+ \beta_7 \, \text{PART_PHARMA}_i+ \beta_8 \, \text{DENS_INF}_i+ \beta_9 \, \text{DENS_KIN}_i+ \varepsilon_i$
+
+    -   $\beta_0$ est la constante ;
+
+    -   $\beta_1, \ldots, \beta_9$ sont les coefficients mesurant l’effet marginal de chaque variable explicative ;
+
+    -   $\varepsilon_i$ représente le terme d’erreur regroupant toutes les influences non observées.
+
+-   Les choix méthodologiques reposent sur des principes tels que :
+
+    Le modèle linéaire multiple permet de prendre en compte en même temps tous les facteurs qui peuvent influencer l’installation des médecins, tout en isolant l’effet spécifique de chacun.
+
+    La méthode des moindres carrés ordinaires (MCO) offre un cadre simple et clair pour estimer ces effets, particulièrement adapté aux données recueillies à un moment donné.
+
+    Enfin, les tests réalisés après l’estimation assurent que les résultats sont statistiquement fiables et renforcent la confiance que l’on peut avoir dans les conclusions.
+
+    Afin de vérifier la robustesse du modèle et de l'estimation nous prévoyons une analyse des résidus pour vérifier les hypothèse de normalité et d'indépendance.
+
+    De plus, nous allons tester la qualité d'ajustement globale du modèle à travers l'analyse du R² ajusté notamment.
+
+# **Analyse des données**
+
+## **Cadre des données**
+
+-   Secteur géographique des données : zones d'emploi en France
+
+    "Une zone d'emploi est un espace géographique à l'intérieur duquel la plupart des actifs résident et travaillent" d'après l'Insee [5].
+
+    Pour notre analyse de la densité de médecins libéraux, nous avons choisi de travailler sur le territoire français (comprenant les territoires d'Outre-Mer), découpé en zones d’emploi. Ce découpage présente deux principaux avantages : il s’agit d’un découpage administratif fin pour lequel un nombre d’informations satisfaisant était disponible et il apparait être un bon compromis entre le niveau communal (trop précis) et le niveau départemental (trop grand).
+
+-   Période d'étude : 2021 à 2024
+
+    Le choix de la période d’étude s’est appuyé sur la disponibilité des données ainsi que la nécessité de travailler dans un cadre suffisamment récent pour traduire les comportements actuels des médecins généralistes concernant le choix du lieu d’installation.
+
+-   Individus :
+
+    Les individus de notre jeu de données sont les 306 zones d'emploi françaises en 2021.
+
+-   Variables :
+
+    Notre variable d'intérêt est la densité de médecins généralistes libéraux en 2024, pour 10 000 habitants.
+
+    Concernant nos données socio-démographiques, nous avons choisi :
+
+    -   La densité de population par zone d'emploi en 2022.
+
+    -   La part des personnes âgées de 75 ans ou plus en 2022 en pourcentage.
+
+    -   Le taux d’activité des 25-54 ans en 2022, exprimé en pourcentage.
+
+    -   La part des ménages fiscaux imposés en 2021 en pourcentage.
+
+    -   La part des actifs occupés de 15 ans ou plus qui utilisent principalement les transports en commun pour aller travailler en 2022 en pourcentage.
+
+    -   La présence d'une faculté de médecine dans la région (1 si c'est le cas, 0 sinon).
+
+    Ces données sont toutes issues de la base de données de l'Insee ainsi que de CartoSanté à l'exception de la donnée concernant les universités de médecine qui a été construite à la main à l'aide de UniFac.
+
+    La densité de population, la part des personnes âgées de 75 ans ou plus traduisent l’état et le dynamisme démographique du territoire. L’augmentation de la consommation de soins avec l’âge est un reflet direct de la consommation de soins du territoire.
+
+    Le taux d'activité ainsi que la part des ménages fiscaux imposés expriment le dynamisme et l'attractivité économique du territoire.
+
+    La part des actifs utilisant principalement les transports en commun pour aller travailler fournit un indicateur du niveau de desservissement et d'accessibilité d’un territoire. Cette variable permet d’évaluer si les infrastructures de transport peuvent constituer un facteur d’attractivité pour les médecins libéraux.
+
+-   Les données relatives à la santé proviennent de CartoSanté. On y trouve :
+
+    -   La part de bénéficiaires de pharmacie par rapport au nombre d'habitants en 2024 en pourcentage.
+
+    -   La densité d'infirmiers libéraux pour 10 000 habitants, 2024.
+
+    -   La densité de kinésithérapeutes libéraux pour 10 000 habitants, 2024.
+
+        La première variable se traduit par le nombre total de bénéficiaires ayant été remboursé d'au moins 1 produit pharmaceutique sur l'année / Nombre d'habitants \* 100.
+
+        Elle permet d’avoir un indicateur de consommation pharmaceutique dans chaque zone, reflétant à la fois la demande en soins de santé et l’activité du secteur médical.
+
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| Nom             | Définition                                                                                                                   | Unité                 | Source                                                                                                                                            |
++=================+==============================================================================================================================+:=====================:+==================================================================================================================================================:+
+| DENS_MED_LIB    | Densité de médecins géneralistes libéraux, 2024.                                                                             | Pour 10 000 habitants | [CartoSanté](https://cartosante.atlasante.fr/#c=indicator&i=offre_ps.dens_g&s=2024&t=A01&view=map4)                                               |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| DENSITE         | Densite de population en 2022.                                                                                               | Population/Supérficie | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=pop_depuis_1876.dens&s=2022&t=A01&view=map10)                   |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| PART_75         | Part des personnes âgées de 75 ans ou plus, 2022.                                                                            | Pourcentage           | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=rp.pt_age75p&s=2022&t=A01&view=map10)                           |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| TAUX_ACTIV      | Taux d'activité par tranche d'âge (25 à 59 ans), 2022.                                                                       | Pourcentage           | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&f=25&i=rp_ageact_15_64.tx_act&s=2022&t=A01&view=map10)            |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| PART_IMPOT      | Part des ménages fiscaux imposés, 2021.                                                                                      | Pourcentage           | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=ds_filosofi.s_hh_tax&s=2021&t=A01&view=map10)                   |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| PART_TRANS_COMM | Part des actifs occupés de 15 ans ou plus qui utilisent principalement les transports en commun pour aller travailler, 2022. | Pourcentage           | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=rp_milles_seul.pt_actocc15p_commun&s=2022&t=A01&view=map10)     |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| UNIV            | Indicatrice égale à 1 si la zone d'emploi comporte une faculté de médecine, 0 sinon.                                         | Propre calcul         | [UniFac](https://unifac.net/facultes-de-medecine-en-france/)                                                                                      |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| PART_PHARMA     | Part de bénéficiaires de pharmacie par rapport au nombre d'habitants, 2024.                                                  | Pourcentage           | [CartoSanté](https://cartosante.atlasante.fr/#c=indicator&i=conso_prest.ben_pharma_pop&s=2024&t=A01&view=map4)                                    |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| DENS_INF        | Densité d'infirmiers libéraux pour 10 000 habitants, 2024.                                                                   | Pour 10 000 habitants | [CartoSanté](https://cartosante.atlasante.fr/#bbox=-1247121,6678530,2986098,1658038&c=indicator&i=offre_ps.dens_actbenais&s=2024&t=A01&view=map4) |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| DENS_KIN        | Densité de kinés libéraux pour 10 000 habitants, 2024.                                                                       | Pour 10 000 habitants | [CartoSanté](https://cartosante.atlasante.fr/#bbox=-1247121,6678530,2986098,1658038&c=indicator&i=offre_ps.densite_kine&s=2024&t=A01&view=map4)   |
++-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+
+## Prétraitement et nettoyage des données
+
+-   Récupération des données
+
+    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+    #Imports des librairies
+    library(dplyr)
+    library(ggplot2)
+    library(gridExtra)
+    library(viridis)
+    library(ellipse)
+    library(GGally)
+    library(lmtest)
+    library(corrplot)
+    library(car)
+
+
+    #récupération des données
+    data <- read.csv("medecins.csv", sep = ';', header = TRUE,  skip = 1)
+    ```
+
+-   Sélection des variables
+
+    Nos variables qualitatives comprennent : la présence d'une faculté de médecine dans la zone d'emploi et la densité de population.
+
+    La densité de population a été séparée en trois groupes : faible densité, densité moyenne et forte densité. Les seuils ont été calculés en fonction des quantiles à 33% et 66% de la distribution de la densité.
+
+    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+    dens <- data$DENSITE
+    quantile(dens, probs = c(0.33, 0.66), na.rm = TRUE)
+
+    data$DENSITE <- ifelse(dens >= 123.248, 
+                                 "Faible",
+                           ifelse(dens >= 56.496 & dens <= 123.248,
+                                 "Moyenne",
+                                 "Forte"))
+
+
+    univ <- data$UNIV
+    data$UNIV <- ifelse(univ == 0,
+                            "Aucune",
+                            "Présente")
+
+    data$DENSITE <- factor(data$DENSITE)
+    data$UNIV <- factor(data$UNIV)
+    ```
+
+-   Sélection d'individus : données manquantes
+
+    On a supprimé les individus ayant 2 valeurs manquantes ou plus afin de limiter l'impact des données manquantes et ne pas réduire la fiabilité des résultats.
+
+    Pour les données manquantes restantes, nous avons décidé de procéder comme ceci : Sélection de la donnée manquante, regarder si l'individu a une densité faible, moyenne ou forte puis remplacer la donnée manquante par la moyenne de cette donnée dans le groupe de densité de l'individu.
+
+    Cette méthode nous permet de ne garder que des données concrètes et de simuler plus finement une donnée manquante.
+
+    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+    data <- data[rowSums(is.na(data)) < 2, ] #Suppression des individus avec plus de 2 valeurs manquantes
+
+    data <- data|> #Remplace les NA par la moyenne en fonction de la densité de la ville.
+      group_by(DENSITE) |>
+      mutate(across(where(is.numeric),
+                    ~ ifelse(is.na(.), mean(., na.rm=TRUE), .))) |>
+      ungroup()
+    ```
+
+## Analyse descriptive univariée des données
+
+-   Tableaux de statistiques descriptives
+
+    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+    # compter le nombre d'individus de chacune des catégories et leur proportion
+    library(knitr)
+    n_univ <- table(data$UNIV)
+    kable(n_univ, caption = "Nombre de zones d'emploi selon la présence d'une université") 
+
+    prop_univ <- prop.table(n_univ)
+    kable(prop_univ, digits = 2, caption = "Proportion de zones d'emploi selon la présence d'une université")
+    ```
+
+    -   Dans notre échantillon, 9.8% des zones d'emplois comportent une faculté de médecine.
+
+    -   On vérifie bien que la densité de population est bien répartie en 3 parties à peu près égales, comme nous l'avons construit lors de la transformation en variable qualitative.
+
+    ```{r, echo=FALSE}
+    # en fonction de la présence d'une université
+    tapply(data$DENS_MED_LIB, data$UNIV, summary)
+    # en fonction de la densité de population
+    tapply(data$DENS_MED_LIB, data$DENSITE, summary)
+    ```
+
+    -   On remarque une différence significative de la densité de médecins généralistes libéraux en fonction de la présence ou non d'une faculté de médecine. La moyenne est de 9.59 lorsque la zone d'emploi en possède une contre 7.438 lorsque ce n'est pas le cas. On a également une variance plus petite ; lorsque une faculté existe dans la zone, on a au minimum 4.5 médecins pour 10 000 habitants (contre 1.6 pour 10 000).
+
+    -   Concernant la densité de population, on remarque que lorsqu'elle est faible, la densité de médecins généralistes libéraux est légèrement plus forte (plus d'un point de différence avec les autres cas). Il y'a également une forte disparité entre les zones d'emploi et de grands écarts entre les extrêmes.
+
+        Cela laisse penser que la densité de médecins libéraux est plus forte dans les zones où des facultés de médecine ont été construite et que la densité est en moyenne un peu plus élevées dans les zones moins dense.
+
+    ```{r, echo=FALSE}
+    summary(data[c("DENS_MED_LIB","PART_75", "TAUX_ACTIV", "PART_IMPOT")])
+    summary(data[c("PART_TRANS_COMM","DENS_INF", "DENS_KIN","PART_PHARMA")])
+    ```
+
+    -   En moyenne dans notre échantillon, la densité de médecins libéraux est de 7.4 pour 10 000 habitants. La moyenne est assez proche de notre médiane comme dans toute les variables de notre modèle. On peut supposer que cette faible différence s'explique par la nature de nos individus (des zones d'emplois), qui regroupent plusieurs communes ce qui pourrait attenuer cette différence.
+
+        Il existe une dispersion assez importante puisque le maximum est 13.7 médecins pour 10 000 habitants contre seulement 1.6 pour le minimum.
+
+    -   La part de la population utilisant principalement les transports en commun ne suit pas notre observation sur la différence entre moyenne et médiane. Cela pourrait s'expliquer par une valeur aberrante ; Paris avec 53% de sa population utilisant les transports en commun pour se déplacer.
+
+-   **Histogramme**
+
+    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+    #pour les histogrammes
+    ggplot(data, aes(x=DENS_MED_LIB)) +  geom_histogram(color= "black", fill="green") + ggtitle("Graphique 1: Histogramme de densité de médecins libéraux") + xlab("Densité") + ylab("Nombre")
+    ```
+
+    L'histogramme suggère une distribution plutôt régulière, et semblable à une loi normale. Il ne semble pas y avoir d'individus atypiques bien que la concentration en médecins à autour de 7 pour 10 000 habitants est la plus forte. La distribution est donc symétrique et les valeurs se concentrent entre 5 et 10 médecins. Donc la répartition des médecins est relativement homogène sur l'ensemble des territoires.
+
+-   **Boites à moustache**
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Creation d'une fonction pour créer des boxplots 
+graph_boxplot <- function(variable, title = NULL) {
+  ggplot(data, aes(y = .data[[variable]])) +
+    geom_boxplot() +
+    theme(
+      legend.position = "none",
+      plot.title = element_text(size = 14)
+    ) +
+    ggtitle(title %||% paste("Boxplot de", variable)) +
+    xlab("")}
+
+#Boite à moustaches des personnes utilisant les transports en commun
+
+p6 <- graph_boxplot("PART_TRANS_COMM",
+                   "Part de la population utilisant les transports en commun pour se rendre au travail")
+
+p5 <- graph_boxplot("PART_IMPOT",
+                   "Part des ménages fiscaux imposables en 2021")
+
+
+grid.arrange(p5,p6, ncol = 2)
+
+```
+
+Commentaire pour le boxplot représentant la part de population utilisant les transports en commun pour se rendre au travail :
+
+-   Nous observons que la boite est très écrasée vers le bas, ainsi nous en concluons que la majeure partie des zones d'emplois ont une part très faible d'usagers des transports en commun.
+
+-   Par ailleurs, nous observons de nombreuses valeurs atypiques, qui correspondent aux zones d'emploi où la part d'usagers de transports en communs est bien supérieure à la normale, ainsi nous en concluons qu'il y a une forte hétérogénéité au niveau des territoires sur le transport. Donc la dispersion n'est pas symétrique et étirée vers le haut.
+
+Commentaire pour le boxplot sur les ménages fiscaux imposables:
+
+-   La répartition globale des ménages fiscaux imposables est inégale bien que nous observons qu'environ la moitié des ménages ont une part d'imposition inférieure et l'autre moitié, supérieure. La boite représente une faible dispersion autour de la médiane en témoigne les écarts entre les quartiles.
+
+-   Nous retrouvons de fortes disparités, certains territoires affichent une part très faible tandis que certains territoires, très élevées par rapport à la médiane
+
+## Analyse descriptive bivariée des données
+
+On regarde l’intensité de la liaison entre les différentes variables en utilisant la mesure de corrélation de Pearson :
+
+-   Coefficient de corrélation
+
+    La matrice de corrélation permet de mesurer la force et le sens des relations entre les variables explicatives. Si un coefficient est trop élevé alors on soupçonne un problème de colinéarité entre deux variables.
+
+    ```{r, echo=FALSE}
+    numeric_cols <- sapply(data,is.numeric)
+    corr_matrix <- cor(data[, numeric_cols], use = "complete.obs")
+
+    corrplot(corr_matrix, 
+             method = "color",        
+             type = "upper",           # seulement la moitié supérieure
+             order = "hclust",         # regroupe les variables corrélées
+             addCoef.col = "black",  
+             tl.cex = 0.8,             
+             number.cex = 0.7       
+    )
+    ```
+
+    La valeur absolue du coefficient de corrélation entre chaques variables n'excède jamais 0.8, ce qui ne nous indique pas de soucis de colinéarité. On remarque cependant que ce coefficient vaut 0.75 entre la densité de médecins libéraux et la densité de kinésithérapeutes, ce qui est à surveiller.
+
+    Ainsi, si la densité de l'une de ces deux professions augmente alors l'autre augmente par conséquent.
+
+-   Règle de Klein
+
+    La règle de Klein consiste à comparer le R^2^ global du modèle au carré du coefficient de corrélation.
+
+    ```{r, echo=FALSE}
+    reg <- lm(data = data,   DENS_MED_LIB ~ DENSITE +     PART_75 +     TAUX_ACTIV +     PART_IMPOT +     PART_TRANS_COMM +     UNIV +     PART_PHARMA +     DENS_INF +     DENS_KIN ) 
+    corr_matrix^2 > summary(reg)$r.squared
+    ```
+
+    Le carré du coefficient de corrélation n'est jamais supérieur au R^2^, on ne peut toujours pas soupçonner de colinéarité entre les variables explicatives
+
+-   Cohérence des signes
+
+    Le signe de la correlation brute et celui de la correlation expliquée devraient être les memes.
+
+    ```{r, echo=FALSE}
+    corr_y <- cor(data[, numeric_cols], use = "complete.obs")[, "DENS_MED_LIB"]
+    coherence <- cbind(   coef = coef(reg),   corr = corr_y[names(coef(reg))] )
+    coherence[-1, ]
+    ```
+
+    La règle de la cohérence des signes est vérifiée pour l’ensemble des variables quantitatives du modèle. Les coefficients estimés ont le même signe que leurs corrélations simples avec la variable expliquée.
+
+-   Test de la multicolinéarité (VIF) :
+
+    Le test du VIF nous permet de détecter la multicolinéarité entre les variables explicatives : il nous permet de mesurer à quel point la variance des coefficients est gonflée à cause des corrélations entre régresseurs.
+
+    ```{r, echo=FALSE, warning=FALSE}
+    sqrt(vif(reg))
+    ```
+
+    Les valeurs obtenues sont toutes proches de 1 et bien inférieure aux seuils usuels de 5 ou 10, ce qui indique l'absence de multicolinéarité entre nos variables.
+
+Au final, notre analyse ne révèle pas de corrélations élevées entre les variables explicatives, ce qui indique l’absence de multicolinéarité dans notre modèle.
+
+-   Nuages de point vis à vis de Y
+
+    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+    # PART_75
+    g2_1 <- ggplot(data, aes(x = DENS_MED_LIB, y = PART_75)) + 
+      geom_point() +
+      labs(
+        title = "Relation entre la densité de médecins libéraux et la \npart de la pop. âgée de +75 ans",
+        x = "Densité de médecins libéraux",
+        y = "Part de la population âgée de plus de 75 ans"
+      ) +
+      theme(
+        plot.title = element_text(size = 8),
+        axis.title.x = element_text(size = 7),
+        axis.title.y = element_text(size = 7)
+      )
+
+    g2_2 <- ggplot(data, aes(x = DENS_MED_LIB, y = log(PART_75))) + 
+      geom_point() +
+      geom_smooth(method = "lm", se = TRUE) +
+      labs(
+        title = "Relation entre la densité de médecins libéraux et la part \nde la pop. âgée de +75 ans",
+        x = "Densité de médecins libéraux",
+        y = "log(Part de la population âgée de plus de 75 ans)"
+      ) +
+      theme(
+        plot.title = element_text(size = 8),
+        axis.title.x = element_text(size = 7),
+        axis.title.y = element_text(size = 7)
+      )
+
+    # PART_IMPOT
+    g3_1 <- ggplot(data, aes(x = DENS_MED_LIB, y = PART_IMPOT)) + 
+      geom_point() +
+      labs(
+        title = "Relation entre la densité de médecins libéraux et la part \ndes ménages imposables",
+        x = "Densité de médecins libéraux",
+        y = "Part des ménages imposables"
+      ) +
+      theme(
+        plot.title = element_text(size = 8),
+        axis.title.x = element_text(size = 7),
+        axis.title.y = element_text(size = 7)
+      )
+
+    g3_2 <- ggplot(data, aes(x = DENS_MED_LIB, y = log(PART_IMPOT))) + 
+      geom_point() +
+      geom_smooth(method = "lm", se = TRUE) +
+      labs(
+        title = "Relation entre la densité de médecins libéraux et la part \ndes ménages imposables",
+        x = "Densité de médecins libéraux",
+        y = "log(Part des ménages imposables)"
+      ) +
+      theme(
+        plot.title = element_text(size = 8),
+        axis.title.x = element_text(size = 7),
+        axis.title.y = element_text(size = 7)
+      )
+
+    grid.arrange(g2_1,g2_2,g3_1,g3_2)
+    ```
+
+    Sur les nuages de points à gauche, on représente la relation entre la densité de médecins libéraux et la part de la population agée de 75 ans ou plus (haut à gauche) ainsi que la part des ménages imposables (en bas à gauche)
+
+    Sur les nuages de points à droite, on applique cette fois le logarithme sur notre variable d'ordonnées afin de limiter l'effet des valeurs aberrantes. Les nouveaux nuages de points sont beaucoup plus linéaires et l'effet des valeurs aberrantes est amoindri.
+
+-   Corrélation vis à vis de Y
+
+    Les nuages de points mettent en évidence des relations cohérentes avec les résultats obtenus lors des tests précédents, notamment les corrélations de Pearson. La pente des droites de régression suggère que les relations observées entre les variables explicatives et la variable expliquée sont majoritairement faibles à modérées et de signe conforme aux corrélations calculées
+
+    Ainsi, l’analyse graphique confirme visuellement l’absence de relations contradictoires avec les résultats statistiques.
+
+# **Analyse et discussion des résultats**
+
+## Modélisation principale
+
+-   Estimation du modèle de référence
+
+Nous avons commençons par estimer un modèle linéaire expliquant la densité de médecins libéraux à partir de différentes variables décrivant les caractéristiques démographiques, socio-économiques et l’offre de soins des territoires. Ce premier modèle présente un R^2^ de 0.6936 ce qui signifique que la variance de la densité de médecins libéraux est expliquée à 69.36% par ces variables.
+
+```{r, echo=FALSE}
+# Modèle linéaire en niveau   
+summary(reg)$r.squared
+```
+
+Nos précèdentes analyses nous ont permit d’identifier les principaux déterminants associés à la densité de médecins libéraux. Néanmoins, cette analyse descriptive nous a permis de mettre en évidence des indivus aberrants et des distributions asymétriques pour certaines variables explicatives, ce qui peut affecter la qualité de notre estimation.
+
+-   Estimation d’un modèle alternatif
+
+Afin de tenir compte de ces caractéristiques, une seconde estimation est réalisée en introduisant des transformations logarithmiques pour certaines variables explicatives.
+
+Cette approche vise à améliorer l’ajustement du modèle. Ainsi, l'équation de notre modèle alternatif est
+
+$\text{DENS_MED_LIB}_i = \beta_0 + \beta_1 \, \text{DENSITE}_i+ \beta_2 \, \text{log(PART_75)}_i+ \beta_3 \, \text{TAUX_ACTIV}_i+ \beta_4 \, \text{log(PART_IMPOT)}_i+ \beta_5 \, \text{PART_TRANS_COMM}_i+ \beta_6 \, \text{UNIV}_i+ \beta_7 \, \text{PART_PHARMA}_i+ \beta_8 \, \text{DENS_INF}_i+ \beta_9 \, \text{DENS_KIN}_i+ \varepsilon_i$
+
+```{r, echo=FALSE}
+reg_model2 <- lm(DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV + log(PART_IMPOT)+PART_TRANS_COMM + UNIV + PART_PHARMA + DENS_INF + DENS_KIN,   data = data )
+summary(reg_model2)$r.squared
+```
+
+Dans ce modèle, nous obtenons un R^2^ légèrement supérieur (0.6952). Pour les variables en logarithme, les coefficients indiquent de combien la densité de médecins libéraux change en pourcentage quand la variable explicative change de 1 %.
+
+-   Comparaison et choix du modèle retenu
+
+La comparaison des deux modèles montre que la seconde spécification offre un meilleur compromis entre qualité d’ajustement et interprétabilité, tout en étant cohérent avec les tests de corrélations précédents.
+
+Au regard de ces éléments, le modèle intégrant les transformations logarithmiques est retenu comme nouveau modèle de référence pour la suite de notre analyse.
+
+## Robustesse des résultats
+
+La normalité des résidus est vérifiée afin de s’assurer de la validité des tests statistiques, sans conditionner les propriétés fondamentales des estimateurs MCO.
+
+Dans un premier temps, nous vérifions que les résidus sont bien centrés autour de zéro, conformément aux propriétés théoriques des MCO. Cette condition est testée à l’aide d’un test de moyenne nulle :
+
+```{r, echo=FALSE}
+#moyennes = 0 # Test (H0: moyenne résidus = 0; H1: moyenne résidus <> 0) 
+t.test(reg_model2$residuals)$estimate
+```
+
+Commentaire :
+
+-   La moyenne estimée des résidus est de l’ordre de -5.78 × 10⁻¹⁷, soit une valeur extrêmement proche de zéro. L’intervalle de confiance à 95 % contient la valeur nulle et la p-value du test est égale à 1. Ainsi, même à un seuil de significativité très exigeant de 0,1 %, on ne peut pas rejeter l’hypothèse nulle selon laquelle la moyenne des résidus est égale à zéro.
+
+    Ce résultat est conforme aux propriétés attendues du modèle de régression linéaire et suggère l’absence de biais systématique dans les erreurs de prédiction, ce qui renforce la validité et la robustesse des estimations obtenues.
+
+    Cependant, ce test ne permet pas de conclure sur la forme de la distribution des résidus. Afin d’évaluer plus précisément l’hypothèse de normalité, un test de Shapiro-Wilk est mis en œuvre :
+
+    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+    shapiro.test(reg_model2$residuals)
+
+    # QQ-plot des résidus pour vérifier visuellement la normalité
+    qqnorm(
+      residuals(reg_model2),
+      main = "QQ-plot des résidus du modèle"
+    )
+    qqline(residuals(reg), col = "red")
+    ```
+
+Commentaires :
+
+-   Le test de Shapiro-Wilk est utilisé afin d’évaluer l’hypothèse de normalité des résidus. L’hypothèse nulle du test stipule que les résidus suivent une distribution normale.
+
+    Dans notre cas, la statistique de test est égale à 0,994 et la p-value associée est de 0,292. Cette p-value étant largement supérieure au seuil de significativité de 5 %, nous ne rejetons pas l’hypothèse nulle de normalité des résidus.
+
+    Ainsi, les résidus peuvent être considérés comme distribués normalement. Cette conclusion renforce la validité des tests statistiques usuels réalisés à partir du modèle estimé et contribue à confirmer la robustesse des résultats obtenus.
+
+-   Le QQ-plot des résidus montre que la plupart des points suivent la droite théorique, ce qui suggère que les résidus de notre modèle sont approximativement distribués normalement. Cette observation visuelle confirme les résultats du test de Shapiro-Wilk et indique que l’hypothèse de normalité des erreurs est correcte, renforçant la fiabilité des tests statistiques effectués sur les coefficients du modèle.
+
+Nous pouvons ensuite vérifier l'hypothèse d'homoscédasticité, car elle est l'une des hypothèses des MCO à valider :
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+plot(reg$fitted.values, reg_model2$residuals,
+     xlab = "Valeurs ajustées",
+     ylab = "Résidus")
+abline(h = 0)
+```
+
+Nous observons à travers ce graphique représentant les résidus en fonction des valeurs ajustées, qu'il n'y a pas de structure particulière, nous observons que le nuage de points est dispersé et donc, aléatoire. Les résidus sont globalement centrés autour de 0. Nous ne constastons pas d'observations qui pourrait invalider l'hypothèse d'homoscédasticité, donc les estimations obtenues par la méthode des moindres carrés ordinaires semblent appropriées concernant la variance des erreurs.
+
+Identification des points influents :
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Distance de Cook 
+plot(reg_model2, which = 4) 
+#Résidus standardisés selon leur levier *
+plot(reg_model2, which = 5)
+```
+
+Commentaires :
+
+-   A travers le graphique représentant la distance de Cook, nous observons une influence significative d'une observation. Afin d'évaluer la robustesse des résultats, le modèle peut être rééestimé en excluant les observations les plus influentes :
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Calcul du seuil de Cook (4/n)
+n <- nrow(data)
+seuil_cook <- 4/n
+
+# Identification des individus
+aberrants <- which(cooks.distance(reg_model2) > seuil_cook)
+aberrants
+data_clean <- data[-aberrants, ]
+
+reg_clean <-
+  lm(   
+    DENS_MED_LIB ~ DENSITE + 
+    log(PART_75) + 
+    TAUX_ACTIV +     
+    log(PART_IMPOT) + 
+    PART_TRANS_COMM + 
+    UNIV +     
+    PART_PHARMA + 
+    DENS_INF + 
+    DENS_KIN,   
+    data = data_clean) 
+
+summary(reg_clean)$r.squared
+
+```
+
+Avec le retrait des individus aberrants, nous constatons une nette amélioration de l'ajustement du modèle, nous observons une qualité d'ajustement de 0,7419.
+
+Nous pouvons ensuite, à partir de notre jeu de données nettoyé, effectuer le test de Breusch-Pagan pour détecter l'hétéroscédasticité dans notre modèle.
+
+```{r, echo=FALSE}
+bptest(reg_clean)
+
+bptest(reg_clean, ~ fitted(reg_clean) + I(fitted(reg_clean)^2))
+```
+
+La variance des résidus est modélisée en fonction de l'ensemble des variables explicatives, ici nous avons le test de Breusch-Pagan qui ne conduit pas au rejet de l'hypothèse nulle d'homoscédasticité au seuil de 5%. En se concentreant sur les valeurs ajustées, nous acceptons assez largement l'hypothèse au seuil de 5%.
+
+Donc l'hypothèse d'homscédasticité est bien respectée.
+
+-   Moindres Carrés Généralisés
+
+Nous comparons ici l’estimation par Moindres Carrés Ordinaires avec une estimation par Moindres Carrés Généralisés afin de tester la robustesse des coefficients face à une possible hétéroscédasticité.
+
+```{r, echo=FALSE, message=FALSE}
+library(stargazer)
+#on suppose que la variance des erreurs est proportionnelle à PART_75
+#on pondère par 1 / PART_75
+reg_MCG <- lm(
+  DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV + 
+    log(PART_IMPOT) + PART_TRANS_COMM + UNIV + PART_PHARMA + 
+    DENS_INF + DENS_KIN,
+  data = data_clean,
+  weights = 1 / PART_75
+)
+
+# *comparaison 
+stargazer(
+  reg_clean, reg_MCG,
+  header = FALSE,
+  title = "Comparaison de l'estimation MCO et MCG",
+  type = "text",        
+  keep.stat = "n",     
+  column.labels = c("MCO", "MCG"),
+  dep.var.labels.include = FALSE,
+  model.numbers = FALSE,
+  dep.var.caption = "Variable dépendante : DENS_MED_LIB"
+)
+
+```
+
+La comparaison montre que la plupart des coefficients restent cohérents, et que les variables clés conservent leur significativité. Cela confirme la robustesse du modèle.
+
+En conclusion, les vérifications effectuées confirment la robustesse de notre modèle. La moyenne des résidus est extrêmement proche de zéro, les résidus suivent approximativement une distribution normale, comme le confirment le test de Shapiro-Wilk. Le graphique des résidus en fonction des valeurs ajustées montre une dispersion aléatoire, ce qui montre que l’hypothèse d’homoscédasticité est globalement respectée. Enfin, le test de Breusch-Pagan montre que l’hypothèse nulle d’homoscédasticité n’est pas rejetée au seuil de 5%. Cela confirme que la variance des erreurs ne dépend pas de manière significative des valeurs prédites et que notre modèle peut être considéré comme fiable.
+
+De plus, l’identification des points influents a permis de détecter quelques observations ayant un effet trop important, et leur retrait a permi un meilleur ajustement du modèle sans perdre en interprétabilité.
+
+## Analyses complémentaires
+
+#### Transformation de variables
+
+Pour tester si certaines relations ne sont pas strictement linéaires, nous estimons plusieurs modèles avec des transformations quadratiques sur les variables continues et avec des interactions entre certaines variables explicatives.
+
+Certaines variables présentent une distribution fortement asymétrique ou des valeurs extrêmes susceptibles de générer de l’hétéroscédasticité. Afin de stabiliser la variance des erreurs et de faciliter l’interprétation des coefficients, les variables telles que la part des transports en commun et la densité de pharmacies seront transformées par logarithme.
+
+Nous estimons d’abord un modèle qui inclue un terme quadratique sur la densité de pharmacies pour tester un effet non linéaire et dans lequel nous avons décidé de retirer le plus de variables possibles tout en ayant un ajustement le plus précis possible.
+
+Ensuite, un second modèle avec des interactions entre plusieurs variables afin d’évaluer l’impact combiné de ces variables sur la densité de médecins libéraux. Les interactions testées sont :
+
+-   Le taux d’activité de la population et la densité de kinésithérapeutes : pour vérifier si l’effet du dynamisme économique varie selon l’offre locale de professionnels de santé
+
+-   La présence d’une université et densité de pharmacies : pour tester si la combinaison d’infrastructures éducatives et sanitaires attire davantage de médecins.
+
+```{r, echo=FALSE}
+# Test de 2 modèles
+reg_nl <- lm(
+  DENS_MED_LIB ~ DENSITE + UNIV + 
+    log(PART_75) + TAUX_ACTIV + PART_TRANS_COMM + I(PART_PHARMA^2) + DENS_KIN,
+  data = data_clean
+)
+summary(reg_nl)$coefficients
+
+reg_n2 <- lm(DENS_MED_LIB ~ TAUX_ACTIV * DENS_KIN + I(TAUX_ACTIV^2) + 
+                    log(PART_TRANS_COMM) + UNIV*log(PART_PHARMA) + I(DENS_KIN^2),
+                    data = data_clean)
+summary(reg_n2)$coefficients
+```
+
+Les modèles montrent que la densité de pharmacies influence la densité de médecins libéraux de manière non linéaire, ce qui justifie l’ajout du terme quadratique pour cette variable.
+
+Les résultats du second modèle montrent que la densité de médecins libéraux augmente surtout dans les territoires où le dynamisme économique et la présence de kinésithérapeutes sont élevés. En revanche, l’effet positif des pharmacies reste le même, qu’il y ait ou non une université. Ajouter ces interactions permet de mieux comprendre pourquoi certains territoires attirent plus de médecins que d’autres.
+
+Cela nous indique qu’un modèle simple avec quelques transformations permet de capter correctement les principaux effets tout en restant facile à interpréter.
+
++--------------------+-----------------------------------------------------+--------------+
+| Modèle             | Transformation appliquée aux variables explicatives | R^2^         |
++====================+:===================================================:+=============:+
+| 1 (modèle de base) | Aucune modification                                 | 0.7411       |
++--------------------+-----------------------------------------------------+--------------+
+| 2                  | | PART_75 —\> *log*(PART_75)                        | 0.7419       |
+|                    |                                                     |              |
+|                    | PART_IMPOT —\> *log*(PART_IMPOT)                    |              |
++--------------------+-----------------------------------------------------+--------------+
+| 3                  | PART_75 —\> *log*(PART_75)                          | 0.7417       |
+|                    |                                                     |              |
+|                    | PART_PHARMA —\> PART_PHARMA^2^                      |              |
+|                    |                                                     |              |
+|                    | PART_IMPOT —\> Supprimé                             |              |
+|                    |                                                     |              |
+|                    | DENS_INF —\> Supprimé                               |              |
++--------------------+-----------------------------------------------------+--------------+
+| 4                  | TAUX ACTIV, DENS_KIN —\> TAUX_ACTIV \* DENS_KIN     | 0.7238       |
+|                    |                                                     |              |
+|                    | PART_TRANS_COMM —\> *log*(PART_TRANS_COMM)          |              |
+|                    |                                                     |              |
+|                    | UNIV, PART_PHARMA —\> UNIV \* *log*(PART_PHARMA)    |              |
+|                    |                                                     |              |
+|                    | DENS_KIN —\> DENS_KIN^2^                            |              |
+|                    |                                                     |              |
+|                    | TAUX_ACTIV —\> TAUX_ACTIV^2^                        |              |
++--------------------+-----------------------------------------------------+--------------+
+
+: Synthèse des transformations de variables
+
+#### Changement structurel
+
+Nous allons observer si la structure du modèle change selon la présence d'une université ou non, à travers un test de Chow :
+
+```{r, echo=FALSE}
+# Création des deux sous-échantillons
+data_sans_univ <- data[data$UNIV == "Aucune", ]
+data_avec_univ <- data[data$UNIV == "Présente", ]
+
+# Estimation des modèles sur les sous-échantillons
+modele_sans_univ <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
+                          PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
+                          DENS_INF + DENS_KIN,
+                        data = data_sans_univ)
+scr_sans <- sum(modele_sans_univ$residuals^2)
+
+modele_avec_univ <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
+                          PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
+                          DENS_INF + DENS_KIN,
+                        data = data_avec_univ)
+scr_avec <- sum(modele_avec_univ$residuals^2)
+
+# Modèle sur l'ensemble de l'échantillon
+modele_total <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
+                     PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
+                     DENS_INF + DENS_KIN + UNIV,
+                   data = data)
+scr_total <- sum(modele_total$residuals^2)
+
+# Degrés de liberté
+ddl_n <- (modele_total$df.residual - (modele_sans_univ$df.residual + modele_avec_univ$df.residual))
+ddl_d <- modele_sans_univ$df.residual + modele_avec_univ$df.residual
+
+# Statistique F et p-value
+FChow <- ((scr_total - (scr_sans + scr_avec)) / ddl_n) / ((scr_sans + scr_avec) / ddl_d)
+pvalue <- pf(FChow, ddl_n, ddl_d, lower.tail = FALSE)
+
+# Résultats
+FChow
+pvalue
+
+```
+
+Le test de Chow indique qu'il n'y a pas de changement structurel significatif selon la présence d’une université (p-value = 0,37). Cela montre que les déterminants de la densité de médecins libéraux ne diffèrent pas entre territoires avec et sans université.
+
+# **Conclusion générale et perspectives**
+
+-   Rappel de la problématique et de la méthodologie :
+
+    L’objectif de ce projet était d’identifier les facteurs déterminant la densité de médecins généralistes libéraux sur les zones d’emploi françaises. Pour ce faire, nous avons construit un modèle de régression linéaire multiple intégrant des variables démographiques, économiques et structurelles. La robustesse des résultats a été vérifiée grâce à l’analyse des résidus, à des transformations logarithmiques et quadratiques, ainsi qu’à l’introduction d’interactions entre certaines variables importantes.
+
+-   Synthèse des résultats principaux
+
+    Nos analyses montrent que la densité de médecins libéraux est principalement influencée par :
+
+    Le dynamisme économique du territoire (taux d’activité de la population), la présence d’infrastructures universitaires et de santé (universités, pharmacies, densité de kinésithérapeutes)., l’usage des transports en commun, avec un effet plus modéré.
+
+    De plus, l’introduction de termes quadratiques et d’interactions a mis en évidence que l’effet de certaines variables, comme le taux d’activité varie selon leur niveau, et que le dynamisme économique et la présence de professionnels médicaux autre que les médecins, se renforcent mutuellement. Le test de Chow a également montré que la structure du modèle diffère entre territoires avec ou sans université.
+
+-   Contributions du mémoire, apports scientifiques et/ou applicatifs
+
+    Ce travail aide à mieux comprendre ce qui explique la présence de médecins libéraux sur un territoire. Les résultats montrent que des facteurs comme le dynamisme économique, la présence d’universités, de pharmacies ou de kinésithérapeutes influencent la densité de médecins. Ces informations peuvent servir aux décideurs pour mieux organiser les zones où il y a peu de médecins et développer les infrastructures nécessaires. Sur le plan scientifique, l’étude confirme l’intérêt d’utiliser des modèles prenant en compte les effets non linéaires et les interactions entre variables, comme le suggèrent Legendre [1] et Delattre & Samson [2].
+
+-   Perspectives d’amélioration ou de recherche future
+
+    Une piste d’amélioration serait d’étudier l’évolution de la densité de médecins sur plusieurs années. Cela permettrait de mieux comprendre comment l’offre de soins change dans le temps et d’identifier les tendances ou dynamiques qui ne sont pas visibles avec une seule année de données. Ce type d’analyse pourrait aider à anticiper les besoins futurs et à adapter les politiques d’aménagement des territoires.
+
+# Bibliographie - Source des données
+
+-   <https://ec.europa.eu/eurostat/fr/web/main/data>
+
+-   <https://statistiques-locales.insee.fr/#c=home>
+
+    [1] Legendre, B. (2020, février). En 2018, les territoires sous-dotés en médecins généralistes concernent près de 6 % de la population (Études & Résultats, n° 1144). Direction de la recherche, des études, de l’évaluation et des statistiques (DREES).
+
+    Lien : <https://medias.amf.asso.fr/upload/files/etude_drees.pdf>
+
+    [2] Delattre, E., & Samson, A.-L. (2013). Stratégies de localisation des médecins généralistes français : mécanismes économiques ou hédonistes ? (Working paper, hal-01685914). HAL. 
+
+    [3] Vergier, N. & Chaput, H. (2017). Déserts médicaux : comment les définir ? Comment les mesurer ? Doss. Dress., 17, 1–63.
+
+    [4] Dumontet M. Féminisation, activité libérale et lieu d’installation: quels enjeux en médecine générale?: Analyses micro-économétriques de l’offre de soins. Université Paris Dauphine; 2015.
+
+    [5] INSEE : [https://www.insee.fr/fr/information/4652957](#0){.uri}
