@@ -25,7 +25,7 @@ D'après la DREES, 6 % des territoires français sont sous-dotés en médecins g
 | Variable | Description | Rôle |
 |---|---|---|
 | `DENS_MED_LIB` | Densité de médecins généralistes libéraux (pour 100 000 hab.) | Variable dépendante |
-| `DENSITE` | Densité de population (hab./km²) | Explicative — suspecte d'endogénéité |
+| `DENSITE` | Densité de population (hab./km²) | Explicative |
 | `PART_75` | Part des personnes âgées de 75 ans ou plus | Explicative |
 | `TAUX_ACTIV` | Taux d'activité des 25-59 ans | Explicative |
 | `PART_IMPOT` | Part des ménages fiscaux imposés | Explicative |
