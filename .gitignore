@@ -1,0 +1,23 @@
+# Fichiers R
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj.user/
+
+# Cache R Markdown
+*_cache/
+*_files/
+
+# Fichiers temporaires knitr
+figure-html/
+figure-latex/
+libs/
+
+# Outputs compilés
+*.html
+*.pdf
+
+# Système
+.DS_Store
+Thumbs.db
+desktop.ini
