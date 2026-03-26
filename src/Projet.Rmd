@@ -698,33 +698,33 @@ Les résultats du second modèle montrent que la densité de médecins libéraux
 
 Cela nous indique qu’un modèle simple avec quelques transformations permet de capter correctement les principaux effets tout en restant facile à interpréter.
 
-+--------------------+-----------------------------------------------------+-------------+
-| Modèle             | Transformation appliquée aux variables explicatives | R^2^        |
-+====================+:===================================================:+============:+
-| 1 (modèle de base) | Aucune modification                                 | 0.7411      |
-+--------------------+-----------------------------------------------------+-------------+
-| 2                  | | PART_75 —\> *log*(PART_75)                        | 0.7419      |
-|                    |                                                     |             |
-|                    | PART_IMPOT —\> *log*(PART_IMPOT)                    |             |
-+--------------------+-----------------------------------------------------+-------------+
-| 3                  | PART_75 —\> *log*(PART_75)                          | 0.7417      |
-|                    |                                                     |             |
-|                    | PART_PHARMA —\> PART_PHARMA^2^                      |             |
-|                    |                                                     |             |
-|                    | PART_IMPOT —\> Supprimé                             |             |
-|                    |                                                     |             |
-|                    | DENS_INF —\> Supprimé                               |             |
-+--------------------+-----------------------------------------------------+-------------+
-| 4                  | TAUX ACTIV, DENS_KIN —\> TAUX_ACTIV \* DENS_KIN     | 0.7238      |
-|                    |                                                     |             |
-|                    | PART_TRANS_COMM —\> *log*(PART_TRANS_COMM)          |             |
-|                    |                                                     |             |
-|                    | UNIV, PART_PHARMA —\> UNIV \* *log*(PART_PHARMA)    |             |
-|                    |                                                     |             |
-|                    | DENS_KIN —\> DENS_KIN^2^                            |             |
-|                    |                                                     |             |
-|                    | TAUX_ACTIV —\> TAUX_ACTIV^2^                        |             |
-+--------------------+-----------------------------------------------------+-------------+
++--------------------+-----------------------------------------------------+--------------+
+| Modèle             | Transformation appliquée aux variables explicatives | R^2^         |
++====================+:===================================================:+=============:+
+| 1 (modèle de base) | Aucune modification                                 | 0.7411       |
++--------------------+-----------------------------------------------------+--------------+
+| 2                  | | PART_75 —\> *log*(PART_75)                        | 0.7419       |
+|                    |                                                     |              |
+|                    | PART_IMPOT —\> *log*(PART_IMPOT)                    |              |
++--------------------+-----------------------------------------------------+--------------+
+| 3                  | PART_75 —\> *log*(PART_75)                          | 0.7417       |
+|                    |                                                     |              |
+|                    | PART_PHARMA —\> PART_PHARMA^2^                      |              |
+|                    |                                                     |              |
+|                    | PART_IMPOT —\> Supprimé                             |              |
+|                    |                                                     |              |
+|                    | DENS_INF —\> Supprimé                               |              |
++--------------------+-----------------------------------------------------+--------------+
+| 4                  | TAUX ACTIV, DENS_KIN —\> TAUX_ACTIV \* DENS_KIN     | 0.7238       |
+|                    |                                                     |              |
+|                    | PART_TRANS_COMM —\> *log*(PART_TRANS_COMM)          |              |
+|                    |                                                     |              |
+|                    | UNIV, PART_PHARMA —\> UNIV \* *log*(PART_PHARMA)    |              |
+|                    |                                                     |              |
+|                    | DENS_KIN —\> DENS_KIN^2^                            |              |
+|                    |                                                     |              |
+|                    | TAUX_ACTIV —\> TAUX_ACTIV^2^                        |              |
++--------------------+-----------------------------------------------------+--------------+
 
 : Synthèse des transformations de variables
 

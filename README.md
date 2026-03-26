@@ -78,8 +78,8 @@ simultanéité : médecins et paramédicaux s'installent selon les mêmes logiqu
 **Approche retenue :**
 - Test de Hausman (régression augmentée) pour confirmer l'endogénéité
 - Estimation par Variables Instrumentales — Moindres Carrés en Deux Étapes (2SLS) via `ivreg()`
-- Test des instruments faibles (F-stat > 10, règle de Stock & Yogo)
-- Test de Sargan pour valider l'exogénéité des instruments (condition de sur-identification)
+- Test des instruments faibles
+- Test de Sargan inutile car l'on dispose d'une seule variable instrumentale
 
 ---
 
