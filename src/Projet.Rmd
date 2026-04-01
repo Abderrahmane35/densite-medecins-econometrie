@@ -809,6 +809,28 @@ Dans notre modèle initial, les variables `DENS_INF` (densité d'infirmiers lib�
 
 Nous allons donc procéder à la recherche d'un instrument pour `DENS_PARA`, corrélée avec la densité paramédicale mais décorrelé du terme d'erreur.
 
+```{r}
+# --- 1. Préparation des données ---
+# On s'assure que l'agrégat paramédical est créé
+data$DENS_PARA <- data$DENS_INF + data$DENS_KIN
+
+# --- 2. Estimation par les Moindres Carrés en Deux Étapes (2SLS) ---
+# La syntaxe de ivreg est : Y ~ X_endogène + X_exogènes | Instrument + X_exogènes
+# Note : Toutes les variables exogènes du modèle doivent apparaître des deux côtés de la barre '|'
+
+library(AER)
+
+modele_iv <- ivreg(DENS_MED_LIB ~ DENS_PARA + DENSITE + log(PART_75) + TAUX_ACTIV + UNIV | 
+                   DENS_SAGE_FEMME + DENSITE + log(PART_75) + TAUX_ACTIV + UNIV, 
+                   data = data)
+
+# --- 3. Affichage des résultats et des tests de diagnostic ---
+# L'option diagnostics = TRUE permet d'afficher les tests cruciaux pour valider l'instrumentation
+summary(modele_iv, diagnostics = TRUE)
+
+```
+
+
 # Multicolinéarité
 
 ## Cadre
@@ -849,7 +871,7 @@ high_cor <- as.data.frame(which(abs(corr_mat) > 0.8 & abs(corr_mat) < 1, arr.ind
 df_high_cor <- data.frame(
   Variable_1 = rownames(corr_mat)[high_cor$row],
   Variable_2 = colnames(corr_mat)[high_cor$col],
-  Correlation = mapply(function(r, c) cor_matrix[r, c], high_cor$row, high_cor$col)
+  Correlation = mapply(function(r, c) corr_mat[r, c], high_cor$row, high_cor$col)
 )
 # On retire les doublons (ex: A-B et B-A)
 df_high_cor <- df_high_cor[df_high_cor$Variable_1 < df_high_cor$Variable_2, ]
@@ -887,7 +909,7 @@ library(pls)
 # scale = TRUE est crucial pour normaliser les unités (page 9 du cours)
 model_pcr <- pcr(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV + 
                  PART_IMPOT + PART_TRANS_COMM + UNIV + 
-                 PART_PHARMA + DENS_KIN + DENS_INF+ DENS, 
+                 PART_PHARMA + DENS_KIN + DENS_INF+ DENS_PARA, 
                  data = data, 
                  scale = TRUE, 
                  validation = "CV") # Validation croisée pour choisir P
