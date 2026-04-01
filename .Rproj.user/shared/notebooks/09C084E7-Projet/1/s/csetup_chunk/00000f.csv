@@ -1,0 +1,3 @@
+"0","knitr::opts_chunk$set(cache = TRUE) #Activer le cache des chunks pour accélérer les recompilations"
+"0","options(""install.lock""=FALSE) #Désactiver le verrouillage d’installation des packages"
+"0","setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) ## configure le chemin du dossier automatiquement"

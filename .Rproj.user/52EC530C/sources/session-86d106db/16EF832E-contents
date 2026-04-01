@@ -1,0 +1,100 @@
+# I - Transformation des données
+
+library(xts)
+library(readxl)
+library(astsa)
+library(ggfortify)
+library(forecast)
+library(fpp2)
+library(readxl)
+library(urca)
+
+### 1 ###
+
+data <- read_excel("data.xlsx")
+View(data)
+data$dates <- as.Date(as.yearmon(data$dates,format = "%YM%m"))
+
+data_xts <- xts(x = data[, c("cpi", "brent")], order.by = data$dates)
+
+cpi <- data_xts$cpi
+brent <- data_xts$brent
+
+### 2 ###
+
+lcpi <- log(data_xts$cpi)
+names(lcpi) <- "lcpi" 
+
+lbrent <- log(data_xts$brent)
+names(lbrent) <- "lbrent" 
+
+### 3 ###
+
+# a) #
+
+infla <- diff(lcpi, lag = 12) * 100
+names(infla) <- "infla"
+
+# b) #
+
+oilinf <- diff(lbrent, lag = 12) * 100
+names(oilinf) <- "oilinf"
+
+### 4 ###
+
+infla_oilinf <- merge(infla, oilinf)
+
+autoplot(infla_oilinf, facets = FALSE) +
+  labs(title = "Inflation CPI vs Inflation pétrolière",
+       y = "Variation annuelle (%)", x = "")
+
+# Interprétation : nous constatons un problème de dimension car infla est plate et autour de 0, et dû à ce problème d'échelle,
+# nous pourrions penser qu'elle est stationnaire, ainsi il faut corriger ce problème de dimension
+
+oilinf <- oilinf / 100
+names(oilinf_scaled) <- "oilinf_scaled"
+
+### 5 ###
+
+# ── Suppression des valeurs manquantes (na.trim comme dans le TD) ─────────────
+infla_sans_NA  <- na.trim(infla)
+oilinf_sans_NA <- na.trim(oilinf)
+
+summary(ur.pp(infla_sans_NA, model = "trend", type = "Z-tau", lags = "short"))
+# on regarde la stat de test qui est ici 1.96 or 1.96 < 3.49 qui est la stat tabulée à 1% 
+# donc la tendance est non signficative à 1% et nous allons tester la constante
+
+# Si la tendance n'est pas significative à 1% => passer au modèle 2
+summary(ur.pp(infla_sans_NA, model = "constant", type = "Z-tau", lags = "short"))
+# Ici la stat de test pour l'intercept est 0.686 < 3.19 d'où la constante n'est pas significative.
+# la série est donc DS.
+
+# ── Test PP sur oilinf ────────────────────────────────────────────────────────
+summary(ur.pp(oilinf_sans_NA, model = "trend", type = "Z-tau", lags = "short"))
+
+# t-stat = 0.877 < 349 donc non significative
+
+summary(ur.pp(oilinf_sans_NA, model = "constant", type = "Z-tau", lags = "short"))
+
+# t-stat = 0.128 donc la série est DS
+
+### 6 ###
+
+dinfla  <- diff(infla)
+names(dinfla) <- "dinfla"
+
+doilinf <- diff(oilinf)
+names(doilinf) <- "doilinf"
+
+
+# II -Fonction de transfert
+
+### 1 ###
+
+plot(dinfla)
+acf2(dinfla)
+
+sarima(infla, 1, 1, 0)
+sarima(infla, 0, 1, 1)
+sarima(infla, 1, 1, 1)
+

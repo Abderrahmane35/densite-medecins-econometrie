@@ -1,0 +1,3 @@
+"0",""
+"0","    prop_univ <- prop.table(n_univ)"
+"0","    kable(prop_univ, digits = 2, caption = ""Proportion de zones d'emploi selon la présence d'une université"")"

@@ -1,0 +1,8 @@
+"0","#moyennes = 0 # Test (H0: moyenne résidus = 0; H1: moyenne résidus <> 0) "
+"0","t.test(reg_model2$residuals)$estimate"
+"1","    mean of x "
+"1","
+"
+"1","-5.775374e-17 "
+"1","
+"

@@ -1,0 +1,3 @@
+"0","plot(reg$fitted.values, reg_model2$residuals,"
+"0","     xlab = ""Valeurs ajustées"","
+"0","     ylab = ""Résidus"")"

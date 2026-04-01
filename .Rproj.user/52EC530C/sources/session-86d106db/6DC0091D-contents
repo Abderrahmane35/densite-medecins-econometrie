@@ -1,0 +1,178 @@
+# clear data & close graphs
+rm(list=ls()) # to clear
+graphics.off() # to close figure
+
+# Define the working directory
+setwd(" ") # setting path for directory
+getwd() # Find the actual working directory
+
+#-----------------------------------------------------------
+#!                installing packages                      !
+#-----------------------------------------------------------
+#install.packages("xts")       # Recall: xts = matrix + time (or index)
+#install.packages("readxl")    # Import data from excel file
+#install.packages("astsa")     # Applied Statistical Time Series Analysis.
+#install.packages("ggfortify") # for autoplot()
+#install.packages("forecast")  # for Exponential and ARIMA forecasting
+#install.packages("fpp2")      # for some time series for application
+
+#-----------------------------------------------------------
+#!         loading package into the R session              !
+#-----------------------------------------------------------
+library(xts)
+library(readxl)
+library(astsa)
+library(ggfortify)
+library(forecast)
+library(fpp2)
+
+#---------------------------------------------------------------------------------------
+#!                           Exercice 1: Pure SARMA(P,D,Q)s                            !
+#---------------------------------------------------------------------------------------
+# Notice: sarima.sim(ar = NULL, d = 0, ma = NULL, sar = NULL, D = 0, sma = NULL, S = NULL, n = 500, ...)
+#         d (resp. D) order of difference (resp. seasonal difference), S seasonal period
+
+# a) Generate 200 observations from a pure seasonal model given by X(t) = 0.9X(t-12) + e(t),
+#    which we denote as a SARMA(1,0)_12. Call this sar1.
+sar1 <- sarima.sim(sar=0.9, S=12, n=200)
+plot(sar1)
+acf2(sar1, max.lag = 60)
+
+# b) Generate 200 observations from a pure seasonal model given by X(t) = e(t) + 0.8e(t-12),
+#    which we denote as a SARMA(1,1)_12. Call this sma1.
+sma1 <- sarima.sim(sma=0.8, S=12, n=200)
+plot(sma1)
+acf2(sma1, max.lag = 60)
+
+# c) Generate 200 observations from a pure seasonal model given by X(t) = 0.9X(t-12) + e(t) + 0.8e(t-12),
+#    which we denote as a SARMA(1,1)_12. Call this sarma.
+sarma <- sarima.sim(sar=0.9, sma=0.8, S=12, n=200)
+plot(sarma)
+acf2(sarma, max.lag = 60)
+
+# d) Fit the seasonal model "sarma" using sarima(). In addition to the p, d, and q arguments in 
+#    your sarima() command, specify P, D, Q, and S (note that R is case sensitive).
+sarima(sarma, p = 0, d = 0, q = 0, P = 1, D = 0, Q = 1, S = 12)
+auto.arima(sarma)
+
+#---------------------------------------------------------------------------------------
+#!                     Exercice 2: Mixte ARIMA(p,d,q)xSARMA(P,D,Q)s                    !
+#---------------------------------------------------------------------------------------
+# Notice: as opposed to the pure seasonal model, there are correlations at the nonseasonal lags as well as the seasonal lags.
+
+# a) Simulate data from a mixed seasonal model SARIMA(0,0,1)x(0,0,1)_12. Call it x.
+x <- sarima.sim(ma = 0.4, sma = 0.5, S = 12, n = 200)
+months = c("J","F","M","A","M","J","J","A","S","O","N","D")
+plot(x[1:36],type='c')
+points(x[1:36], pch=months, cex=1.1, font=4, col=1:4)
+abline(v=c(1,13,25),lty=2)
+# conclusion : SARMA permet de modéliser la saisonnalité 
+#              souple (en amplitude)
+
+# b) Plot the sample ACF/PACF to lag 60 (max.lag = 60) using acf2().
+acf2(x, max.lag = 60)
+
+# c) Fit the model to generated data (x) using sarima().
+sarima(x, p = 0, d = 0, q = 1, P = 0, D = 0, Q = 1, S = 12)
+# ma(1) => (p=0,d=0,q=1)
+# sma(1) => (P=0,D=0,Q=1)
+
+#---------------------------------------------------------------------------------------
+#!                        Exercice 3: ARIMA with seasonal data                         !
+#---------------------------------------------------------------------------------------
+# ***************** I) Box-Jenkings with seasonal data ************************
+help(euretail) # Quarterly retail trade index in the Euro area (17 countries), 1996-2011
+plot(euretail)
+
+# a) Take the seasonal difference of the correct the seasonal pattern. Choose the order of the seasonal 
+#    difference according to the frequency of the data. Use ggtsdisplay() to plot the data along with correlogram.
+# fréquence trimestrielle : S=4
+# diff(lag=4) : différence saisonnière, à ne pas confondre avec 
+#               différence première diff()
+
+euretail %>% diff(lag=4) %>% ggtsdisplay()
+# la saisonnalité a été enleveée, mais il reste la RU => b)
+
+# b) Take an additional first-difference to correct for non-stationnarity.
+euretail %>% diff(lag=4) %>% diff() %>% ggtsdisplay()
+# diff(lag=4): différence saisonnière, pour éliminer la saisonnalité
+# diff(): différence première pour éliminer la racine unité
+# avec la série désaisonnalisée et sans Ru, on applique Box-Jenkins => c)
+
+# c) Inspect the last correlogram and propose model candidates.
+# Etape 1 : Box-Jenkins: spécification (lecture de ACF et PACF)
+# E(t): Non-seasonal lag: MA(1), AR(1), ARMA(1,1)
+# S(t) : Seasonal lag (S=4): SMA(1)_4, SAR(1)_4, SARMA(1,1)_4
+
+# d) Fit different model canditates to euretail and check residuals.
+# Notice: ARIMA(p,d,q)xSARMA(P,D,Q)s is fitted with Arima(order=c(p,d,q), seasonal=c(P,D,Q)) 
+#         or Arima(order=c(p,d,q), seasonal=list(order=c(P,D,Q),period=s))
+
+#    d1) Fit an ARIMA(1,1,0)xSARMA(1,1,0)4 model
+# E(t) : AR(1) =< order=c(1,1,0)
+# S(t) : SAR(1) => seasonal=c(1,1,0)
+
+fit1 <- Arima(euretail, order=c(1,1,0), seasonal=c(1,1,0))
+checkresiduals(fit1)
+ggtsdisplay(residuals(fit1))
+summary(fit1) # coeff sont significatifs AIC = 76.57
+
+#    d2) Fit an ARIMA(0,1,1)xSARMA(0,1,1)4 model
+fit2 <- Arima(euretail, order=c(0,1,1), seasonal=c(0,1,1))
+checkresiduals(fit2)
+ggtsdisplay(residuals(fit2))
+summary(fit2) # coeff singificatifs mais autocorrélation
+
+#    d3) Fit an ARIMA(1,1,1)xSARMA(1,1,1)4 model
+fit3 <- Arima(euretail, order=c(1,1,1), seasonal=c(1,1,1))
+checkresiduals(fit3)
+ggtsdisplay(residuals(fit3))
+summary(fit3) # coeff sar1 non signfificatif même si AIC la plus basse des trois modèles, on abandonne ce modèle
+
+# modèle retenu entre d1, d2 et d3 => d1 => prévision
+
+
+
+#********************* II) auto.arima for seasonnal data *************************
+# a) Use auto.arima to search for optimal model for euretail. Call it fit_auto.
+fit_auto <- auto.arima(euretail)
+
+# b) Use summary() to summarize the final model that is retained.
+summary(fit_auto)
+
+# c) Inspect residuals from that model.
+ggtsdisplay(residuals(fit_auto))
+checkresiduals(fit_auto)
+
+# AIC meilleur pour auto.arima
+
+#*************** III) Produce forecast using the best model *********************
+# Recall the fitted model: fit1, fit2, fit3 and fit_auto
+___ %>% forecast(h=12) %>% autoplot()
+___ %>% forecast(h=12) %>% summary()
+
+#---------------------------------------------------------------------------------------
+#!             Exercice 4: Additional exemple of ARIMA with seasonal data              !
+#---------------------------------------------------------------------------------------
+help(h02)
+h02 %>% autoplot()
+
+# a) Check that the logged h02 data have stable variance
+h02 %>% log() %>% autoplot()
+
+# b) Fit a seasonal ARIMA model to h02 using auto.arima() with lambda = 0
+fit_h02 <- auto.arima(h02, lambda = 0) #non stationnaire en variance
+
+# c) Summarize the fitted model
+summary(fit_h02)
+
+# d) Inspect residuals from that model.
+ggtsdisplay(residuals(fit_h02))
+checkresiduals(fit_h02)
+
+# e) Plot 2-year forecasts
+h02 %>% forecast(h=24) %>% autoplot()
+
+# f) Forecast from snaive() function might be used as a comparison, namely by using test set and tsCV.
+h02 %>% snaive() %>% forecast(h=24) %>% autoplot()
+

@@ -1,0 +1,2 @@
+"0","    #pour les histogrammes"
+"0","    ggplot(data, aes(x=DENS_MED_LIB)) +  geom_histogram(color= ""black"", fill=""green"") + ggtitle(""Graphique 1: Histogramme de densité de médecins libéraux"") + xlab(""Densité"") + ylab(""Nombre"")"

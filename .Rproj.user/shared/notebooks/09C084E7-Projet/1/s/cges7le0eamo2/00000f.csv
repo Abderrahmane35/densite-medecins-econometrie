@@ -1,0 +1,6 @@
+"0","reg_model2 <- lm(DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV + log(PART_IMPOT)+PART_TRANS_COMM + UNIV + PART_PHARMA + DENS_INF + DENS_KIN,   data = data )"
+"0","summary(reg_model2)$r.squared"
+"1","[1]"
+"1"," 0.6951902"
+"1","
+"

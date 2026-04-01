@@ -1,0 +1,3 @@
+"0","    # compter le nombre d'individus de chacune des catégories et leur proportion"
+"0","    n_univ <- table(data$UNIV)"
+"0","    kable(n_univ, caption = ""Nombre de zones d'emploi selon la présence d'une université"") "
