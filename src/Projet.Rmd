@@ -844,11 +844,11 @@ ggcorrplot(corr_mat,
 
 # Repérer corrélations fortes (> 0.8)
 
-high_cor <- as.data.frame(which(abs(cor_matrix) > 0.8 & abs(cor_matrix) < 1, arr.ind = TRUE))
+high_cor <- as.data.frame(which(abs(corr_mat) > 0.8 & abs(corr_mat) < 1, arr.ind = TRUE))
 # Mise en forme pour un affichage propre
 df_high_cor <- data.frame(
-  Variable_1 = rownames(cor_matrix)[high_cor$row],
-  Variable_2 = colnames(cor_matrix)[high_cor$col],
+  Variable_1 = rownames(corr_mat)[high_cor$row],
+  Variable_2 = colnames(corr_mat)[high_cor$col],
   Correlation = mapply(function(r, c) cor_matrix[r, c], high_cor$row, high_cor$col)
 )
 # On retire les doublons (ex: A-B et B-A)
@@ -877,7 +877,28 @@ Un R2_j​ de 1 lors des régressions auxiliaires
 
 Une division par zéro dans la formule du VIF, rendant le résultat indéfini (∞).
 
-C'est pourquoi le logiciel ne peut produire de sortie numérique
+C'est pourquoi le logiciel ne peut produire de sortie numérique.
+
+```{r}
+# Installation si nécessaire
+install.packages("pls")
+library(pls)
+
+# On définit le modèle (on exclut DENS_PARA car c'est une somme exacte)
+# scale = TRUE est crucial pour normaliser les unités (page 9 du cours)
+model_pcr <- pcr(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV + 
+                 PART_IMPOT + PART_TRANS_COMM + UNIV + 
+                 PART_PHARMA + DENS_KIN + DENS_INF+ DENS, 
+                 data = data, 
+                 scale = TRUE, 
+                 validation = "CV") # Validation croisée pour choisir P
+
+# 1. Visualiser l'erreur pour choisir le nombre de composantes (Page 14)
+plot(RMSEP(model_pcr), legendpos = "topright", main = "Choix du nombre de composantes")
+
+# 2. Résumé du modèle
+summary(model_pcr)
+```
 
 # Bibliographie - Source
 
