@@ -816,6 +816,19 @@ Nous allons donc procéder à la recherche d'un instrument pour `DENS_PARA`, cor
 data$DENS_PARA <- data$DENS_INF + data$DENS_KIN
 ```
 
+Test des 2SLS :
+
+```{r}
+library(AER)
+
+modele_iv <- ivreg(DENS_MED_LIB ~ DENS_PARA |
+                   DENS_SAGE_FEMME,
+                   data = data)
+
+summary(modele_iv, diagnostics = TRUE)
+
+```
+
 # Bibliographie - Source
 
 -   <https://ec.europa.eu/eurostat/fr/web/main/data>
