@@ -207,13 +207,14 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) ## configure le chem
     library(lmtest)
     library(corrplot)
     library(car)
-
+    library(knitr)
+    library(stargazer)
+    library(ggcorrplot)
+    library(car)
 
     #récupération des données
     data <- read.csv("../data/medecins.csv",
-                     sep = ";", header = TRUE, skip = 1,
-                     fileEncoding = "latin1")
-    View(data)
+                     sep = ";", header = TRUE, skip = 1, fileEncoding = "latin1")
     ```
 
 -   Sélection des variables
@@ -266,7 +267,6 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) ## configure le chem
 
     ```{r, echo=FALSE, message=FALSE, warning=FALSE}
     # compter le nombre d'individus de chacune des catégories et leur proportion
-    library(knitr)
     n_univ <- table(data$UNIV)
     kable(n_univ, caption = "Nombre de zones d'emploi selon la présence d'une université") 
 
@@ -629,7 +629,6 @@ Donc l'hypothèse d'homscédasticité est bien respectée.
 Nous comparons ici l’estimation par Moindres Carrés Ordinaires avec une estimation par Moindres Carrés Généralisés afin de tester la robustesse des coefficients face à une possible hétéroscédasticité.
 
 ```{r, echo=FALSE, message=FALSE}
-library(stargazer)
 #on suppose que la variance des erreurs est proportionnelle à PART_75
 #on pondère par 1 / PART_75
 reg_MCG <- lm(
@@ -698,33 +697,33 @@ Les résultats du second modèle montrent que la densité de médecins libéraux
 
 Cela nous indique qu’un modèle simple avec quelques transformations permet de capter correctement les principaux effets tout en restant facile à interpréter.
 
-+--------------------+-----------------------------------------------------+--------------+
-| Modèle             | Transformation appliquée aux variables explicatives | R^2^         |
-+====================+:===================================================:+=============:+
-| 1 (modèle de base) | Aucune modification                                 | 0.7411       |
-+--------------------+-----------------------------------------------------+--------------+
-| 2                  | | PART_75 —\> *log*(PART_75)                        | 0.7419       |
-|                    |                                                     |              |
-|                    | PART_IMPOT —\> *log*(PART_IMPOT)                    |              |
-+--------------------+-----------------------------------------------------+--------------+
-| 3                  | PART_75 —\> *log*(PART_75)                          | 0.7417       |
-|                    |                                                     |              |
-|                    | PART_PHARMA —\> PART_PHARMA^2^                      |              |
-|                    |                                                     |              |
-|                    | PART_IMPOT —\> Supprimé                             |              |
-|                    |                                                     |              |
-|                    | DENS_INF —\> Supprimé                               |              |
-+--------------------+-----------------------------------------------------+--------------+
-| 4                  | TAUX ACTIV, DENS_KIN —\> TAUX_ACTIV \* DENS_KIN     | 0.7238       |
-|                    |                                                     |              |
-|                    | PART_TRANS_COMM —\> *log*(PART_TRANS_COMM)          |              |
-|                    |                                                     |              |
-|                    | UNIV, PART_PHARMA —\> UNIV \* *log*(PART_PHARMA)    |              |
-|                    |                                                     |              |
-|                    | DENS_KIN —\> DENS_KIN^2^                            |              |
-|                    |                                                     |              |
-|                    | TAUX_ACTIV —\> TAUX_ACTIV^2^                        |              |
-+--------------------+-----------------------------------------------------+--------------+
++--------------------+-----------------------------------------------------+-------------+
+| Modèle             | Transformation appliquée aux variables explicatives | R^2^        |
++====================+:===================================================:+============:+
+| 1 (modèle de base) | Aucune modification                                 | 0.7411      |
++--------------------+-----------------------------------------------------+-------------+
+| 2                  | | PART_75 —\> *log*(PART_75)                        | 0.7419      |
+|                    |                                                     |             |
+|                    | PART_IMPOT —\> *log*(PART_IMPOT)                    |             |
++--------------------+-----------------------------------------------------+-------------+
+| 3                  | PART_75 —\> *log*(PART_75)                          | 0.7417      |
+|                    |                                                     |             |
+|                    | PART_PHARMA —\> PART_PHARMA^2^                      |             |
+|                    |                                                     |             |
+|                    | PART_IMPOT —\> Supprimé                             |             |
+|                    |                                                     |             |
+|                    | DENS_INF —\> Supprimé                               |             |
++--------------------+-----------------------------------------------------+-------------+
+| 4                  | TAUX ACTIV, DENS_KIN —\> TAUX_ACTIV \* DENS_KIN     | 0.7238      |
+|                    |                                                     |             |
+|                    | PART_TRANS_COMM —\> *log*(PART_TRANS_COMM)          |             |
+|                    |                                                     |             |
+|                    | UNIV, PART_PHARMA —\> UNIV \* *log*(PART_PHARMA)    |             |
+|                    |                                                     |             |
+|                    | DENS_KIN —\> DENS_KIN^2^                            |             |
+|                    |                                                     |             |
+|                    | TAUX_ACTIV —\> TAUX_ACTIV^2^                        |             |
++--------------------+-----------------------------------------------------+-------------+
 
 : Synthèse des transformations de variables
 
@@ -768,7 +767,6 @@ pvalue <- pf(FChow, ddl_n, ddl_d, lower.tail = FALSE)
 # Résultats
 FChow
 pvalue
-
 ```
 
 Le test de Chow indique qu'il n'y a pas de changement structurel significatif selon la présence d’une université (p-value = 0,37). Cela montre que les déterminants de la densité de médecins libéraux ne diffèrent pas entre territoires avec et sans université.
@@ -795,7 +793,7 @@ Le test de Chow indique qu'il n'y a pas de changement structurel significatif se
 
     Une piste d’amélioration serait d’étudier l’évolution de la densité de médecins sur plusieurs années. Cela permettrait de mieux comprendre comment l’offre de soins change dans le temps et d’identifier les tendances ou dynamiques qui ne sont pas visibles avec une seule année de données. Ce type d’analyse pourrait aider à anticiper les besoins futurs et à adapter les politiques d’aménagement des territoires.
 
-# Partie 2 : Endogénéité et variables instrumentales
+# Endogénéité et variables instrumentales
 
 ## Cadre méthodologique
 
@@ -811,12 +809,9 @@ Dans notre modèle initial, les variables `DENS_INF` (densité d'infirmiers lib�
 
 Nous allons donc procéder à la recherche d'un instrument pour `DENS_PARA`, corrélée avec la densité paramédicale mais décorrelé du terme d'erreur.
 
-```{r}
-#DENS_PARA = somme des densités paramédicales
-data$DENS_PARA <- data$DENS_INF + data$DENS_KIN
-```
+Nous avons choisi DENS_SAGE_FEMME
 
-Test des 2SLS :
+Test des 2SLS
 
 ```{r}
 library(AER)
@@ -828,6 +823,76 @@ modele_iv <- ivreg(DENS_MED_LIB ~ DENS_PARA |
 summary(modele_iv, diagnostics = TRUE)
 
 ```
+
+# Multicolinéarité
+
+## Cadre
+
+La multicolinéarité désigne une situation dans laquelle certaines variables explicatives sont fortement corrélées entre elles. Bien qu’elle ne remette pas en cause la validité des estimateurs MCO en termes d’absence de biais, elle affecte leur précision : les variances des coefficients augmentent, les tests de significativité deviennent moins fiables, et l’interprétation individuelle des coefficients est rendue plus délicate.
+
+Dans le cadre de notre étude sur la densité de médecins généralistes libéraux par zone d’emploi, ce problème est particulièrement plausible. En effet, plusieurs variables explicatives mobilisées telles que la densité de population, la part de personnes âgées, le niveau d’activité ou encore la présence d’infrastructures universitaires sont susceptibles de capter des dimensions proches de l’attractivité ou du dynamisme territorial. Cette proximité conceptuelle peut induire des corrélations élevées entre variables.
+
+Par ailleurs, la variable DENS_PARA, construite comme agrégation de la densité d’infirmiers et de kinésithérapeutes, peut également être corrélée à d’autres indicateurs socio-économiques ou sanitaires du territoire, renforçant ainsi les risques de redondance informationnelle.
+
+Afin d’évaluer la présence et l’ampleur de la multicolinéarité dans notre modèle, nous mobiliserons plusieurs outils complémentaires : l’analyse des corrélations entre variables explicatives, le calcul des facteurs d’inflation de variance (Variance Inflation Factors, VIF), ainsi que l’étude de la stabilité des coefficients estimés avant et après ajustement du modèle. Ces diagnostics permettront d’identifier d’éventuelles redondances et d’améliorer la spécification économétrique.
+
+```{r}
+# Sélection des variables explicatives
+data$DENS_PARA <- data$DENS_INF + data$DENS_KIN
+vars <- data[, c("PART_75", "TAUX_ACTIV", 
+                 "PART_IMPOT", "PART_TRANS_COMM", "PART_PHARMA","DENS_INF", "DENS_KIN", "DENS_PARA")]
+
+# Matrice de corrélation
+corr_mat <- cor(vars, use = "complete.obs")
+ggcorrplot(corr_mat, 
+           hc.order = TRUE, 
+           type = "lower",
+           lab = TRUE, 
+           lab_size = 3, 
+           method = "circle", 
+           colors = c("#E46726", "white", "#6D9EC1"),
+           title = "Matrice de corrélation des variables explicatives",
+           ggtheme = theme_minimal())
+
+
+
+
+# Repérer corrélations fortes (> 0.8)
+
+high_cor <- as.data.frame(which(abs(corr_mat) > 0.8 & abs(corr_mat) < 1, arr.ind = TRUE))
+# Mise en forme pour un affichage propre
+df_high_cor <- data.frame(
+  Variable_1 = rownames(corr_mat)[high_cor$row],
+  Variable_2 = colnames(corr_mat)[high_cor$col],
+  Correlation = mapply(function(r, c) corr_mat[r, c], high_cor$row, high_cor$col)
+)
+# On retire les doublons (ex: A-B et B-A)
+df_high_cor <- df_high_cor[df_high_cor$Variable_1 < df_high_cor$Variable_2, ]
+print(df_high_cor)
+```
+
+```{r}
+model_ols <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV + 
+                PART_IMPOT + PART_TRANS_COMM + UNIV + 
+                PART_PHARMA + DENS_KIN + DENS_INF + DENS_PARA, data = data)
+summary(model_ols)
+
+#Test du VIF
+#DENS_PARA = DENS_INF + DENS_KIN (colinéarité parfaite).
+vif(model_ols)
+```
+
+La variable `DENS_PARA` apparaît avec une estimation `NA` dans le summary du model_ols. Ce résultat confirme que le logiciel a détecté une singularité (colinéarité parfaite).
+
+L'inclusion simultanée de DENS_INF, DENS_KIN et de leur somme DENS_PARA crée une relation linéaire exacte (DENS_PARA=DENS_INF+DENS_KIN).
+
+Mathématiquement, la matrice des variables explicatives X n'est plus de rang plein, rendant la matrice (X′X) non inversible. Il en résulte :
+
+Un R2_j​ de 1 lors des régressions auxiliaires
+
+Une division par zéro dans la formule du VIF, rendant le résultat indéfini (∞).
+
+C'est pourquoi le logiciel ne peut produire de sortie numérique
 
 # Bibliographie - Source
 

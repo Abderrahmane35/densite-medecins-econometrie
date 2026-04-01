@@ -1,23 +1,9 @@
-# Fichiers R
-.Rhistory
-.RData
-.Ruserdata
-*.Rproj.user/
+PowerBI:
+- Ajout bouton reinit (google)
+- masquer un bouton
+- bouton Reset lié au bouton masqué (signet) - Bouton rouge masque le bouton reset une fois qu'on clique dessus
 
-# Cache R Markdown
-*_cache/
-*_files/
-
-# Fichiers temporaires knitr
-figure-html/
-figure-latex/
-libs/
-
-# Outputs compilés
-*.html
-*.pdf
-
-# Système
-.DS_Store
-Thumbs.db
-desktop.ini
+Exo 2 
+- dupliquer chaque graphe et les superposer
+- créer deux signets analyse quantité et chiffre d'affaire
+- quand on appuie sur un des deux boutons ca met un signet

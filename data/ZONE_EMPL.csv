@@ -1,0 +1,311 @@
+﻿CartoSanté
+Référentiel géographique : France par zone d'emploi
+Code;Libellé
+0051;Alençon
+0052;Arles
+0053;Avignon
+0054;Beauvais
+0055;Bollène-Pierrelatte
+0056;Cosne-Cours-sur-Loire
+0057;Dreux
+0058;La Vallée de la Bresle-Vimeu
+0059;Mâcon
+0060;Nevers
+0061;Nogent-le-Rotrou
+0062;Redon
+0063;Ussel
+0064;Valréas
+0101;Côte sous le vent
+0102;Est Grande Terre
+0103;Marie-Galante
+0104;Région Pointoise
+0105;Sud Basse-Terre
+0201;Le Centre-Atlantique
+0202;Le Centre agglomération
+0203;Le Nord-Atlantique
+0204;Le Nord-Caraibe
+0205;Le Sud
+0206;Le Sud-Caraibe
+0301;Est-littoral
+0302;Ouest-Guyanais
+0303;Savanes
+0401;L'Est
+0402;L'Ouest
+0403;Le Nord
+0404;Le Sud
+0601;Mayotte
+1101;Cergy-Vexin
+1102;Coulommiers
+1103;Étampes
+1104;Évry-Courcouronnes
+1105;Fontainebleau-Nemours
+1106;Marne-la-Vallée
+1107;Meaux
+1108;Melun
+1109;Paris
+1110;Provins
+1111;Rambouillet
+1112;Roissy
+1113;Saclay
+1114;Seine-Yvelinoise
+1115;Versailles-Saint-Quentin
+2401;Blois
+2402;Bourges
+2403;Chartres
+2404;Châteaudun
+2405;Châteauroux
+2406;Chinon
+2407;Gien
+2408;Loches
+2409;Montargis
+2410;Orléans
+2411;Pithiviers
+2412;Romorantin-Lanthenay
+2413;Tours
+2414;Vendôme
+2415;Vierzon
+2701;Autun
+2702;Auxerre
+2703;Avallon
+2704;Beaune
+2705;Belfort
+2706;Besançon
+2707;Chalon-sur-Saône
+2708;Charolais
+2709;Châtillon-Montbard
+2710;Creusot-Montceau
+2711;Dijon
+2712;Dole
+2713;Lons-le-Saunier
+2714;Montbéliard
+2715;Pontarlier
+2716;Saint-Claude
+2717;Sens
+2718;Vesoul
+2801;Argentan
+2802;Avranches
+2803;Bernay
+2804;Caen
+2805;Cherbourg-en-Cotentin
+2806;Coutances
+2807;Dieppe-Caux maritime
+2808;Évreux
+2809;Flers
+2810;Granville
+2811;Honfleur Pont-Audemer
+2812;L'Aigle
+2813;Le Havre
+2814;Lisieux
+2815;Rouen
+2816;Saint-Lô
+2817;Vernon-Gisors
+2818;Vire Normandie
+2819;Yvetot-Vallée du Commerce
+3201;Abbeville
+3202;Amiens
+3203;Arras
+3204;Berck
+3205;Béthune
+3206;Boulogne-sur-Mer
+3207;Calais
+3208;Cambrai
+3209;Château-Thierry
+3210;Compiègne
+3211;Creil
+3212;Douai
+3213;Dunkerque
+3214;Laon
+3215;Lens
+3216;Lille
+3217;Maubeuge
+3218;Roubaix-Tourcoing
+3219;Saint-Omer
+3220;Saint-Quentin
+3221;Soissons
+3222;Valenciennes
+4401;Bar-le-Duc
+4402;Châlons-en-Champagne
+4403;Charleville-Mézières
+4404;Chaumont
+4405;Colmar
+4406;Épernay
+4407;Épinal
+4408;Forbach
+4409;Haguenau
+4410;Metz
+4411;Mulhouse
+4412;Nancy
+4413;Reims
+4414;Remiremont
+4415;Romilly-sur-Seine
+4416;Saint-Avold
+4417;Saint-Dié-des-Vosges
+4418;Saint-Louis
+4419;Sarrebourg
+4420;Sarreguemines
+4421;Sedan
+4422;Sélestat
+4423;Strasbourg
+4424;Thionville
+4425;Troyes
+4426;Verdun
+4427;Vitry-le-François Saint-Dizier
+5201;Ancenis
+5202;Angers
+5203;Challans
+5204;Château-Gontier-sur-Mayenne
+5205;Châteaubriant
+5206;Cholet
+5207;Fontenay-le-Comte
+5208;La Ferté-Bernard
+5209;La Flèche
+5210;La Roche-sur-Yon
+5211;Laval
+5212;Le Mans
+5213;Les Herbiers-Montaigu
+5214;Les Sables-d'Olonne
+5215;Mayenne
+5216;Nantes
+5217;Pornic
+5218;Sablé-sur-Sarthe
+5219;Saint-Nazaire
+5220;Saumur
+5221;Segré-en-Anjou Bleu
+5301;Auray
+5302;Brest
+5303;Carhaix-Plouguer
+5304;Dinan
+5305;Fougères
+5306;Guingamp
+5307;Lamballe-Armor
+5308;Lannion
+5309;Lorient
+5310;Morlaix
+5311;Ploërmel
+5312;Pontivy-Loudéac
+5313;Quimper
+5314;Quimperlé
+5315;Rennes
+5316;Saint-Brieuc
+5317;Saint-Malo
+5318;Vannes
+5319;Vitré
+7501;Agen
+7502;Angoulême
+7503;Bayonne
+7504;Bergerac
+7505;Bordeaux
+7506;Bressuire
+7507;Brive-la-Gaillarde
+7508;Châtellerault
+7509;Cognac
+7510;Dax
+7511;Guéret
+7512;La Rochelle
+7513;La Teste-de-Buch
+7514;Langon
+7515;Lesparre-Médoc
+7516;Libourne
+7517;Limoges
+7518;Marmande
+7519;Mont-de-Marsan
+7520;Niort
+7521;Oloron-Sainte-Marie
+7522;Pau
+7523;Périgueux
+7524;Poitiers
+7525;Rochefort
+7526;Royan
+7527;Saint-Junien
+7528;Saintes
+7529;Sarlat-la-Canéda
+7530;Thouars
+7531;Tulle
+7532;Villeneuve-sur-Lot
+7601;Agde-Pézenas
+7602;Albi
+7603;Alès-Le Vigan
+7604;Auch
+7605;Bagnols-sur-Cèze
+7606;Béziers
+7607;Cahors
+7608;Carcassonne-Limoux
+7609;Castelsarrasin-Moissac
+7610;Castres-Mazamet
+7611;Figeac-Villefranche
+7612;Foix-Pamiers
+7613;Mende
+7614;Millau
+7615;Montauban
+7616;Montpellier
+7617;Narbonne
+7618;Nîmes
+7619;Nord-du-Lot
+7620;Perpignan
+7621;Rodez
+7622;Saint-Gaudens
+7623;Sète
+7624;Tarbes-Lourdes
+7625;Toulouse
+8401;Annecy
+8402;Aubenas
+8403;Aurillac
+8404;Belley
+8405;Bourg-en-Bresse
+8406;Bourgoin-Jallieu
+8407;Chambéry
+8408;Clermont-Ferrand
+8409;Grenoble
+8410;Issoire
+8411;La Maurienne
+8412;La Plaine du Forez
+8413;La Tarentaise
+8414;La Vallée de l'Arve
+8415;Le Chablais
+8416;Le Genevois Français
+8417;Le Livradois
+8418;Le Mont Blanc
+8419;Le Puy-en-Velay
+8420;Les Sources de la Loire
+8421;Lyon
+8422;Montélimar
+8423;Montluçon
+8424;Moulins
+8425;Oyonnax
+8426;Roanne
+8427;Romans-sur-Isère
+8428;Saint-Étienne
+8429;Saint-Flour
+8430;Tarare
+8431;Valence
+8432;Vichy
+8433;Vienne-Annonay
+8434;Villefranche-sur-Saône
+8435;Voiron
+9301;Aix-en-Provence
+9302;Briançon
+9303;Brignoles
+9304;Cannes
+9305;Carpentras
+9306;Cavaillon
+9307;Digne-les-Bains
+9308;Draguignan
+9309;Fréjus
+9310;Gap
+9311;Manosque
+9312;Marseille
+9313;Martigues-Salon
+9314;Menton
+9315;Nice
+9316;Orange
+9317;Sainte-Maxime
+9318;Toulon
+9401;Ajaccio
+9402;Bastia
+9403;Calvi
+9404;Corte
+9405;Ghisonaccia
+9406;Porto-Vecchio
+9407;Propriano
+977Z;St-Barthélémy
+978Z;St-Martin
