@@ -168,29 +168,18 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) ## configure le chem
 
         Elle permet d’avoir un indicateur de consommation pharmaceutique dans chaque zone, reflétant à la fois la demande en soins de santé et l’activité du secteur médical.
 
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| Nom             | Définition                                                                                                                   | Unité                 | Source                                                                                                                                            |
-+=================+==============================================================================================================================+:=====================:+==================================================================================================================================================:+
-| DENS_MED_LIB    | Densité de médecins géneralistes libéraux, 2024.                                                                             | Pour 10 000 habitants | [CartoSanté](https://cartosante.atlasante.fr/#c=indicator&i=offre_ps.dens_g&s=2024&t=A01&view=map4)                                               |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| DENSITE         | Densite de population en 2022.                                                                                               | Population/Supérficie | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=pop_depuis_1876.dens&s=2022&t=A01&view=map10)                   |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| PART_75         | Part des personnes âgées de 75 ans ou plus, 2022.                                                                            | Pourcentage           | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=rp.pt_age75p&s=2022&t=A01&view=map10)                           |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| TAUX_ACTIV      | Taux d'activité par tranche d'âge (25 à 59 ans), 2022.                                                                       | Pourcentage           | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&f=25&i=rp_ageact_15_64.tx_act&s=2022&t=A01&view=map10)            |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| PART_IMPOT      | Part des ménages fiscaux imposés, 2021.                                                                                      | Pourcentage           | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=ds_filosofi.s_hh_tax&s=2021&t=A01&view=map10)                   |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| PART_TRANS_COMM | Part des actifs occupés de 15 ans ou plus qui utilisent principalement les transports en commun pour aller travailler, 2022. | Pourcentage           | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=rp_milles_seul.pt_actocc15p_commun&s=2022&t=A01&view=map10)     |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| UNIV            | Indicatrice égale à 1 si la zone d'emploi comporte une faculté de médecine, 0 sinon.                                         | Propre calcul         | [UniFac](https://unifac.net/facultes-de-medecine-en-france/)                                                                                      |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| PART_PHARMA     | Part de bénéficiaires de pharmacie par rapport au nombre d'habitants, 2024.                                                  | Pourcentage           | [CartoSanté](https://cartosante.atlasante.fr/#c=indicator&i=conso_prest.ben_pharma_pop&s=2024&t=A01&view=map4)                                    |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| DENS_INF        | Densité d'infirmiers libéraux pour 10 000 habitants, 2024.                                                                   | Pour 10 000 habitants | [CartoSanté](https://cartosante.atlasante.fr/#bbox=-1247121,6678530,2986098,1658038&c=indicator&i=offre_ps.dens_actbenais&s=2024&t=A01&view=map4) |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
-| DENS_KIN        | Densité de kinés libéraux pour 10 000 habitants, 2024.                                                                       | Pour 10 000 habitants | [CartoSanté](https://cartosante.atlasante.fr/#bbox=-1247121,6678530,2986098,1658038&c=indicator&i=offre_ps.densite_kine&s=2024&t=A01&view=map4)   |
-+-----------------+------------------------------------------------------------------------------------------------------------------------------+-----------------------+---------------------------------------------------------------------------------------------------------------------------------------------------+
+| Nom | Définition | Unité | Source |
+|----|----|:--:|---:|
+| DENS_MED_LIB | Densité de médecins géneralistes libéraux, 2024. | Pour 10 000 habitants | [CartoSanté](https://cartosante.atlasante.fr/#c=indicator&i=offre_ps.dens_g&s=2024&t=A01&view=map4) |
+| DENSITE | Densite de population en 2022. | Population/Supérficie | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=pop_depuis_1876.dens&s=2022&t=A01&view=map10) |
+| PART_75 | Part des personnes âgées de 75 ans ou plus, 2022. | Pourcentage | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=rp.pt_age75p&s=2022&t=A01&view=map10) |
+| TAUX_ACTIV | Taux d'activité par tranche d'âge (25 à 59 ans), 2022. | Pourcentage | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&f=25&i=rp_ageact_15_64.tx_act&s=2022&t=A01&view=map10) |
+| PART_IMPOT | Part des ménages fiscaux imposés, 2021. | Pourcentage | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=ds_filosofi.s_hh_tax&s=2021&t=A01&view=map10) |
+| PART_TRANS_COMM | Part des actifs occupés de 15 ans ou plus qui utilisent principalement les transports en commun pour aller travailler, 2022. | Pourcentage | [Statistiques Locales INSEE](https://statistiques-locales.insee.fr/#c=indicator&i=rp_milles_seul.pt_actocc15p_commun&s=2022&t=A01&view=map10) |
+| UNIV | Indicatrice égale à 1 si la zone d'emploi comporte une faculté de médecine, 0 sinon. | Propre calcul | [UniFac](https://unifac.net/facultes-de-medecine-en-france/) |
+| PART_PHARMA | Part de bénéficiaires de pharmacie par rapport au nombre d'habitants, 2024. | Pourcentage | [CartoSanté](https://cartosante.atlasante.fr/#c=indicator&i=conso_prest.ben_pharma_pop&s=2024&t=A01&view=map4) |
+| DENS_INF | Densité d'infirmiers libéraux pour 10 000 habitants, 2024. | Pour 10 000 habitants | [CartoSanté](https://cartosante.atlasante.fr/#bbox=-1247121,6678530,2986098,1658038&c=indicator&i=offre_ps.dens_actbenais&s=2024&t=A01&view=map4) |
+| DENS_KIN | Densité de kinés libéraux pour 10 000 habitants, 2024. | Pour 10 000 habitants | [CartoSanté](https://cartosante.atlasante.fr/#bbox=-1247121,6678530,2986098,1658038&c=indicator&i=offre_ps.densite_kine&s=2024&t=A01&view=map4) |
 
 ## Prétraitement et nettoyage des données
 
@@ -697,33 +686,33 @@ Les résultats du second modèle montrent que la densité de médecins libéraux
 
 Cela nous indique qu’un modèle simple avec quelques transformations permet de capter correctement les principaux effets tout en restant facile à interpréter.
 
-+--------------------+-----------------------------------------------------+--------------+
-| Modèle             | Transformation appliquée aux variables explicatives | R^2^         |
-+====================+:===================================================:+=============:+
-| 1 (modèle de base) | Aucune modification                                 | 0.7411       |
-+--------------------+-----------------------------------------------------+--------------+
-| 2                  | | PART_75 —\> *log*(PART_75)                        | 0.7419       |
-|                    |                                                     |              |
-|                    | PART_IMPOT —\> *log*(PART_IMPOT)                    |              |
-+--------------------+-----------------------------------------------------+--------------+
-| 3                  | PART_75 —\> *log*(PART_75)                          | 0.7417       |
-|                    |                                                     |              |
-|                    | PART_PHARMA —\> PART_PHARMA^2^                      |              |
-|                    |                                                     |              |
-|                    | PART_IMPOT —\> Supprimé                             |              |
-|                    |                                                     |              |
-|                    | DENS_INF —\> Supprimé                               |              |
-+--------------------+-----------------------------------------------------+--------------+
-| 4                  | TAUX ACTIV, DENS_KIN —\> TAUX_ACTIV \* DENS_KIN     | 0.7238       |
-|                    |                                                     |              |
-|                    | PART_TRANS_COMM —\> *log*(PART_TRANS_COMM)          |              |
-|                    |                                                     |              |
-|                    | UNIV, PART_PHARMA —\> UNIV \* *log*(PART_PHARMA)    |              |
-|                    |                                                     |              |
-|                    | DENS_KIN —\> DENS_KIN^2^                            |              |
-|                    |                                                     |              |
-|                    | TAUX_ACTIV —\> TAUX_ACTIV^2^                        |              |
-+--------------------+-----------------------------------------------------+--------------+
++--------------------+-----------------------------------------------------+--------+
+| Modèle             | Transformation appliquée aux variables explicatives | R^2^   |
++====================+:===================================================:+=======:+
+| 1 (modèle de base) | Aucune modification                                 | 0.7411 |
++--------------------+-----------------------------------------------------+--------+
+| 2                  | | PART_75 —\> *log*(PART_75)                        | 0.7419 |
+|                    |                                                     |        |
+|                    | PART_IMPOT —\> *log*(PART_IMPOT)                    |        |
++--------------------+-----------------------------------------------------+--------+
+| 3                  | PART_75 —\> *log*(PART_75)                          | 0.7417 |
+|                    |                                                     |        |
+|                    | PART_PHARMA —\> PART_PHARMA^2^                      |        |
+|                    |                                                     |        |
+|                    | PART_IMPOT —\> Supprimé                             |        |
+|                    |                                                     |        |
+|                    | DENS_INF —\> Supprimé                               |        |
++--------------------+-----------------------------------------------------+--------+
+| 4                  | TAUX ACTIV, DENS_KIN —\> TAUX_ACTIV \* DENS_KIN     | 0.7238 |
+|                    |                                                     |        |
+|                    | PART_TRANS_COMM —\> *log*(PART_TRANS_COMM)          |        |
+|                    |                                                     |        |
+|                    | UNIV, PART_PHARMA —\> UNIV \* *log*(PART_PHARMA)    |        |
+|                    |                                                     |        |
+|                    | DENS_KIN —\> DENS_KIN^2^                            |        |
+|                    |                                                     |        |
+|                    | TAUX_ACTIV —\> TAUX_ACTIV^2^                        |        |
++--------------------+-----------------------------------------------------+--------+
 
 : Synthèse des transformations de variables
 
@@ -887,23 +876,36 @@ library(pls)
 # scale = TRUE est crucial pour normaliser les unités (page 9 du cours)
 model_pcr <- pcr(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV + 
                  PART_IMPOT + PART_TRANS_COMM + UNIV + 
-                 PART_PHARMA + DENS_KIN + DENS_INF+ DENS, 
+                 PART_PHARMA + DENS_KIN + DENS_INF+ DENS_PARA, 
                  data = data, 
                  scale = TRUE, 
                  validation = "CV") # Validation croisée pour choisir P
 
-# 1. Visualiser l'erreur pour choisir le nombre de composantes (Page 14)
+# 1. Visualiser l'erreur pour choisir le nombre de composantes
 plot(RMSEP(model_pcr), legendpos = "topright", main = "Choix du nombre de composantes")
 
 # 2. Résumé du modèle
 summary(model_pcr)
 ```
 
-La méthode du coude nous fournit 4 à 5 composantes
+La méthode du coude nous fournit 4 composantes
+
+Voici le pourcentage de variance expliquée par chaque composante.
 
 ```{r, echo=FALSE}
 
 explvar(model_pcr)
+```
+
+```{r, echo=FALSE}
+
+par(mfrow=c(2,2))
+validationplot(pcr_est,legendpos= "topright")
+validationplot(pcr_est, val.type="MSEP",legendpos= "topright")
+validationplot(pcr_est, val.type="R2")
+
+
+plot(pcr_est, ncomp=18,  line=TRUE)
 ```
 
 # Bibliographie - Source
