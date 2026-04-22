@@ -11,7 +11,6 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(cache = TRUE) #Activer le cache des chunks pour accélérer les recompilations
 options("install.lock"=FALSE) #Désactiver le verrouillage d’installation des packages
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) ## configure le chemin du dossier automatiquement
 ```
 
 [**Master 1 MAS - Université de Rennes**](https://eco.univ-rennes.fr/master-mathematiques-appliquees-statistique)
@@ -196,142 +195,153 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) ## configure le chem
 
 -   Récupération des données
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    #Imports des librairies
-    library(dplyr)
-    library(ggplot2)
-    library(gridExtra)
-    library(viridis)
-    library(ellipse)
-    library(GGally)
-    library(lmtest)
-    library(corrplot)
-    library(car)
-    library(knitr)
-    library(stargazer)
-    library(ggcorrplot)
-    library(car)
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Imports des librairies
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(viridis)
+library(ellipse)
+library(GGally)
+library(lmtest)
+library(corrplot)
+library(car)
+library(knitr)
+library(stargazer)
+library(ggcorrplot)
+library(glmnet)
+library(caret)
+library(pls)
+library(paradox)
+library(mlr3tuning)
+library(DoubleML)
+library(ISLR)
+library(kableExtra)
+library(mlr3)
+library(mlr3learners)
+library(ggpubr)
+library(hdm)
 
-    #récupération des données
-    data <- read.csv("../data/medecins.csv",
-                     sep = ";", header = TRUE, skip = 1, fileEncoding = "latin1")
-    ```
+#récupération des données
+data <- read.csv("../data/medecins.csv",
+                 sep = ";", header = TRUE, skip = 1, fileEncoding = "latin1")
+```
 
 -   Sélection des variables
 
-    Nos variables qualitatives comprennent : la présence d'une faculté de médecine dans la zone d'emploi et la densité de population.
+Nos variables qualitatives comprennent : la présence d'une faculté de médecine dans la zone d'emploi et la densité de population.
 
-    La densité de population a été séparée en trois groupes : faible densité, densité moyenne et forte densité. Les seuils ont été calculés en fonction des quantiles à 33% et 66% de la distribution de la densité.
+La densité de population a été séparée en trois groupes : faible densité, densité moyenne et forte densité. Les seuils ont été calculés en fonction des quantiles à 33% et 66% de la distribution de la densité.
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    dens <- data$DENSITE
-    quantile(dens, probs = c(0.33, 0.66), na.rm = TRUE)
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+dens <- data$DENSITE
+quantile(dens, probs = c(0.33, 0.66), na.rm = TRUE)
 
-    data$DENSITE <- ifelse(dens >= 123.248, 
-                                 "Faible",
-                           ifelse(dens >= 56.496 & dens <= 123.248,
-                                 "Moyenne",
-                                 "Forte"))
+data$DENSITE <- ifelse(dens >= 123.248, 
+                             "Faible",
+                       ifelse(dens >= 56.496 & dens <= 123.248,
+                             "Moyenne",
+                             "Forte"))
 
 
-    univ <- data$UNIV
-    data$UNIV <- ifelse(univ == 0,
-                            "Aucune",
-                            "Présente")
+univ <- data$UNIV
+data$UNIV <- ifelse(univ == 0,
+                        "Aucune",
+                        "Présente")
 
-    data$DENSITE <- factor(data$DENSITE)
-    data$UNIV <- factor(data$UNIV)
-    ```
+data$DENSITE <- factor(data$DENSITE)
+data$UNIV <- factor(data$UNIV)
+```
 
 -   Sélection d'individus : données manquantes
 
-    On a supprimé les individus ayant 2 valeurs manquantes ou plus afin de limiter l'impact des données manquantes et ne pas réduire la fiabilité des résultats.
+On a supprimé les individus ayant 2 valeurs manquantes ou plus afin de limiter l'impact des données manquantes et ne pas réduire la fiabilité des résultats.
 
-    Pour les données manquantes restantes, nous avons décidé de procéder comme ceci : Sélection de la donnée manquante, regarder si l'individu a une densité faible, moyenne ou forte puis remplacer la donnée manquante par la moyenne de cette donnée dans le groupe de densité de l'individu.
+Pour les données manquantes restantes, nous avons décidé de procéder comme ceci : Sélection de la donnée manquante, regarder si l'individu a une densité faible, moyenne ou forte puis remplacer la donnée manquante par la moyenne de cette donnée dans le groupe de densité de l'individu.
 
-    Cette méthode nous permet de ne garder que des données concrètes et de simuler plus finement une donnée manquante.
+Cette méthode nous permet de ne garder que des données concrètes et de simuler plus finement une donnée manquante.
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    data <- data[rowSums(is.na(data)) < 2, ] #Suppression des individus avec plus de 2 valeurs manquantes
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+data <- data[rowSums(is.na(data)) < 2, ] #Suppression des individus avec plus de 2 valeurs manquantes
 
-    data <- data|> #Remplace les NA par la moyenne en fonction de la densité de la ville.
-      group_by(DENSITE) |>
-      mutate(across(where(is.numeric),
-                    ~ ifelse(is.na(.), mean(., na.rm=TRUE), .))) |>
-      ungroup()
-    ```
+data <- data|> #Remplace les NA par la moyenne en fonction de la densité de la ville.
+  group_by(DENSITE) |>
+  mutate(across(where(is.numeric),
+                ~ ifelse(is.na(.), mean(., na.rm=TRUE), .))) |>
+  ungroup()
+```
 
 ## Analyse descriptive univariée des données
 
 -   Tableaux de statistiques descriptives
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    # compter le nombre d'individus de chacune des catégories et leur proportion
-    n_univ <- table(data$UNIV)
-    kable(n_univ, caption = "Nombre de zones d'emploi selon la présence d'une université") 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# compter le nombre d'individus de chacune des catégories et leur proportion
+n_univ <- table(data$UNIV)
+kable(n_univ, caption = "Nombre de zones d'emploi selon la présence d'une université") 
 
-    prop_univ <- prop.table(n_univ)
-    kable(prop_univ, digits = 2, caption = "Proportion de zones d'emploi selon la présence d'une université")
-    ```
+prop_univ <- prop.table(n_univ)
+kable(prop_univ, digits = 2, caption = "Proportion de zones d'emploi selon la présence d'une université")
+```
 
-    -   Dans notre échantillon, 9.8% des zones d'emplois comportent une faculté de médecine.
+-   Dans notre échantillon, 9.8% des zones d'emplois comportent une faculté de médecine.
 
-    -   On vérifie bien que la densité de population est bien répartie en 3 parties à peu près égales, comme nous l'avons construit lors de la transformation en variable qualitative.
+-   On vérifie bien que la densité de population est bien répartie en 3 parties à peu près égales, comme nous l'avons construit lors de la transformation en variable qualitative.
 
-    ```{r, echo=FALSE}
-    # en fonction de la présence d'une université
-    tapply(data$DENS_MED_LIB, data$UNIV, summary)
-    # en fonction de la densité de population
-    tapply(data$DENS_MED_LIB, data$DENSITE, summary)
-    ```
+```{r, echo=FALSE}
+# en fonction de la présence d'une université
+tapply(data$DENS_MED_LIB, data$UNIV, summary)
+# en fonction de la densité de population
+tapply(data$DENS_MED_LIB, data$DENSITE, summary)
+```
 
-    -   On remarque une différence significative de la densité de médecins généralistes libéraux en fonction de la présence ou non d'une faculté de médecine. La moyenne est de 9.59 lorsque la zone d'emploi en possède une contre 7.438 lorsque ce n'est pas le cas. On a également une variance plus petite ; lorsque une faculté existe dans la zone, on a au minimum 4.5 médecins pour 10 000 habitants (contre 1.6 pour 10 000).
+-   On remarque une différence significative de la densité de médecins généralistes libéraux en fonction de la présence ou non d'une faculté de médecine. La moyenne est de 9.59 lorsque la zone d'emploi en possède une contre 7.438 lorsque ce n'est pas le cas. On a également une variance plus petite ; lorsque une faculté existe dans la zone, on a au minimum 4.5 médecins pour 10 000 habitants (contre 1.6 pour 10 000).
 
-    -   Concernant la densité de population, on remarque que lorsqu'elle est faible, la densité de médecins généralistes libéraux est légèrement plus forte (plus d'un point de différence avec les autres cas). Il y'a également une forte disparité entre les zones d'emploi et de grands écarts entre les extrêmes.
+-   Concernant la densité de population, on remarque que lorsqu'elle est faible, la densité de médecins généralistes libéraux est légèrement plus forte (plus d'un point de différence avec les autres cas). Il y'a également une forte disparité entre les zones d'emploi et de grands écarts entre les extrêmes.
 
-        Cela laisse penser que la densité de médecins libéraux est plus forte dans les zones où des facultés de médecine ont été construite et que la densité est en moyenne un peu plus élevées dans les zones moins dense.
+    Cela laisse penser que la densité de médecins libéraux est plus forte dans les zones où des facultés de médecine ont été construite et que la densité est en moyenne un peu plus élevées dans les zones moins dense.
 
-    ```{r, echo=FALSE}
-    summary(data[c("DENS_MED_LIB","PART_75", "TAUX_ACTIV", "PART_IMPOT")])
-    summary(data[c("PART_TRANS_COMM","DENS_INF", "DENS_KIN","PART_PHARMA")])
-    ```
+```{r, echo=FALSE}
+summary(data[c("DENS_MED_LIB","PART_75", "TAUX_ACTIV", "PART_IMPOT")])
+summary(data[c("PART_TRANS_COMM","DENS_INF", "DENS_KIN","PART_PHARMA")])
+```
 
-    -   En moyenne dans notre échantillon, la densité de médecins libéraux est de 7.4 pour 10 000 habitants. La moyenne est assez proche de notre médiane comme dans toute les variables de notre modèle. On peut supposer que cette faible différence s'explique par la nature de nos individus (des zones d'emplois), qui regroupent plusieurs communes ce qui pourrait attenuer cette différence.
+-   En moyenne dans notre échantillon, la densité de médecins libéraux est de 7.4 pour 10 000 habitants. La moyenne est assez proche de notre médiane comme dans toute les variables de notre modèle. On peut supposer que cette faible différence s'explique par la nature de nos individus (des zones d'emplois), qui regroupent plusieurs communes ce qui pourrait attenuer cette différence.
 
-        Il existe une dispersion assez importante puisque le maximum est 13.7 médecins pour 10 000 habitants contre seulement 1.6 pour le minimum.
+    Il existe une dispersion assez importante puisque le maximum est 13.7 médecins pour 10 000 habitants contre seulement 1.6 pour le minimum.
 
-    -   La part de la population utilisant principalement les transports en commun ne suit pas notre observation sur la différence entre moyenne et médiane. Cela pourrait s'expliquer par une valeur aberrante ; Paris avec 53% de sa population utilisant les transports en commun pour se déplacer.
+-   La part de la population utilisant principalement les transports en commun ne suit pas notre observation sur la différence entre moyenne et médiane. Cela pourrait s'expliquer par une valeur aberrante ; Paris avec 53% de sa population utilisant les transports en commun pour se déplacer.
 
 -   **Histogramme**
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    #pour les histogrammes
-    ggplot(data, aes(x=DENS_MED_LIB)) +  geom_histogram(color= "black", fill="green") + ggtitle("Graphique 1: Histogramme de densité de médecins libéraux") + xlab("Densité") + ylab("Nombre")
-    ```
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#pour les histogrammes
+ggplot(data, aes(x=DENS_MED_LIB)) +  geom_histogram(color= "black", fill="green") + ggtitle("Graphique 1: Histogramme de densité de médecins libéraux") + xlab("Densité") + ylab("Nombre")
+```
 
-    L'histogramme suggère une distribution plutôt régulière, et semblable à une loi normale. Il ne semble pas y avoir d'individus atypiques bien que la concentration en médecins à autour de 7 pour 10 000 habitants est la plus forte. La distribution est donc symétrique et les valeurs se concentrent entre 5 et 10 médecins. Donc la répartition des médecins est relativement homogène sur l'ensemble des territoires.
+L'histogramme suggère une distribution plutôt régulière, et semblable à une loi normale. Il ne semble pas y avoir d'individus atypiques bien que la concentration en médecins à autour de 7 pour 10 000 habitants est la plus forte. La distribution est donc symétrique et les valeurs se concentrent entre 5 et 10 médecins. Donc la répartition des médecins est relativement homogène sur l'ensemble des territoires.
 
 -   **Boites à moustache**
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #Creation d'une fonction pour créer des boxplots 
 graph_boxplot <- function(variable, title = NULL) {
-  ggplot(data, aes(y = .data[[variable]])) +
-    geom_boxplot() +
-    theme(
-      legend.position = "none",
-      plot.title = element_text(size = 14)
-    ) +
-    ggtitle(title %||% paste("Boxplot de", variable)) +
-    xlab("")}
+ggplot(data, aes(y = .data[[variable]])) +
+geom_boxplot() +
+theme(
+  legend.position = "none",
+  plot.title = element_text(size = 14)
+) +
+ggtitle(title %||% paste("Boxplot de", variable)) +
+xlab("")}
 
 #Boite à moustaches des personnes utilisant les transports en commun
 
 p6 <- graph_boxplot("PART_TRANS_COMM",
-                   "Part de la population utilisant les transports en commun pour se rendre au travail")
+               "Part de la population utilisant les transports en commun pour se rendre au travail")
 
 p5 <- graph_boxplot("PART_IMPOT",
-                   "Part des ménages fiscaux imposables en 2021")
+               "Part des ménages fiscaux imposables en 2021")
 
 
 grid.arrange(p5,p6, ncol = 2)
@@ -356,132 +366,123 @@ On regarde l’intensité de la liaison entre les différentes variables en util
 
 -   Coefficient de corrélation
 
-    La matrice de corrélation permet de mesurer la force et le sens des relations entre les variables explicatives. Si un coefficient est trop élevé alors on soupçonne un problème de colinéarité entre deux variables.
+La matrice de corrélation permet de mesurer la force et le sens des relations entre les variables explicatives. Si un coefficient est trop élevé alors on soupçonne un problème de colinéarité entre deux variables.
 
-    ```{r, echo=FALSE}
-    numeric_cols <- sapply(data,is.numeric)
-    corr_matrix <- cor(data[, numeric_cols], use = "complete.obs")
+```{r, echo=FALSE}
+numeric_cols <- sapply(data,is.numeric)
+corr_matrix <- cor(data[, numeric_cols], use = "complete.obs")
+```
 
-    corrplot(corr_matrix, 
-             method = "color",        
-             type = "upper",           # seulement la moitié supérieure
-             order = "hclust",         # regroupe les variables corrélées
-             addCoef.col = "black",  
-             tl.cex = 0.8,             
-             number.cex = 0.7       
-    )
-    ```
+La valeur absolue du coefficient de corrélation entre chaques variables n'excède jamais 0.8, ce qui ne nous indique pas de soucis de colinéarité. On remarque cependant que ce coefficient vaut 0.75 entre la densité de médecins libéraux et la densité de kinésithérapeutes, ce qui est à surveiller.
 
-    La valeur absolue du coefficient de corrélation entre chaques variables n'excède jamais 0.8, ce qui ne nous indique pas de soucis de colinéarité. On remarque cependant que ce coefficient vaut 0.75 entre la densité de médecins libéraux et la densité de kinésithérapeutes, ce qui est à surveiller.
-
-    Ainsi, si la densité de l'une de ces deux professions augmente alors l'autre augmente par conséquent.
+Ainsi, si la densité de l'une de ces deux professions augmente alors l'autre augmente par conséquent.
 
 -   Règle de Klein
 
-    La règle de Klein consiste à comparer le R^2^ global du modèle au carré du coefficient de corrélation.
+La règle de Klein consiste à comparer le R^2^ global du modèle au carré du coefficient de corrélation.
 
-    ```{r, echo=FALSE}
-    reg <- lm(data = data,   DENS_MED_LIB ~ DENSITE +     PART_75 +     TAUX_ACTIV +     PART_IMPOT +     PART_TRANS_COMM +     UNIV +     PART_PHARMA +     DENS_INF +     DENS_KIN ) 
-    corr_matrix^2 > summary(reg)$r.squared
-    ```
+```{r, echo=FALSE}
+reg <- lm(data = data,   DENS_MED_LIB ~ DENSITE +     PART_75 +     TAUX_ACTIV +     PART_IMPOT +     PART_TRANS_COMM +     UNIV +     PART_PHARMA +     DENS_INF +     DENS_KIN ) 
+corr_matrix^2 > summary(reg)$r.squared
+```
 
-    Le carré du coefficient de corrélation n'est jamais supérieur au R^2^, on ne peut toujours pas soupçonner de colinéarité entre les variables explicatives
+Le carré du coefficient de corrélation n'est jamais supérieur au R^2^, on ne peut toujours pas soupçonner de colinéarité entre les variables explicatives
 
 -   Cohérence des signes
 
-    Le signe de la correlation brute et celui de la correlation expliquée devraient être les memes.
+Le signe de la correlation brute et celui de la correlation expliquée devraient être les memes.
 
-    ```{r, echo=FALSE}
-    corr_y <- cor(data[, numeric_cols], use = "complete.obs")[, "DENS_MED_LIB"]
-    coherence <- cbind(   coef = coef(reg),   corr = corr_y[names(coef(reg))] )
-    coherence[-1, ]
-    ```
+```{r, echo=FALSE}
+corr_y <- cor(data[, numeric_cols], use = "complete.obs")[, "DENS_MED_LIB"]
+coherence <- cbind(   coef = coef(reg),   corr = corr_y[names(coef(reg))] )
+coherence[-1, ]
+```
 
-    La règle de la cohérence des signes est vérifiée pour l’ensemble des variables quantitatives du modèle. Les coefficients estimés ont le même signe que leurs corrélations simples avec la variable expliquée.
+La règle de la cohérence des signes est vérifiée pour l’ensemble des variables quantitatives du modèle. Les coefficients estimés ont le même signe que leurs corrélations simples avec la variable expliquée.
 
 -   Test de la multicolinéarité (VIF) :
 
-    Le test du VIF nous permet de détecter la multicolinéarité entre les variables explicatives : il nous permet de mesurer à quel point la variance des coefficients est gonflée à cause des corrélations entre régresseurs.
+Le test du VIF nous permet de détecter la multicolinéarité entre les variables explicatives : il nous permet de mesurer à quel point la variance des coefficients est gonflée à cause des corrélations entre régresseurs.
 
-    ```{r, echo=FALSE, warning=FALSE}
-    sqrt(vif(reg))
-    ```
+```{r, echo=FALSE, warning=FALSE}
+sqrt(vif(reg))
+```
 
-    Les valeurs obtenues sont toutes proches de 1 et bien inférieure aux seuils usuels de 5 ou 10, ce qui indique l'absence de multicolinéarité entre nos variables.
+Les valeurs obtenues sont toutes proches de 1 et bien inférieure aux seuils usuels de 5 ou 10, ce qui indique l'absence de multicolinéarité entre nos variables.
 
 Au final, notre analyse ne révèle pas de corrélations élevées entre les variables explicatives, ce qui indique l’absence de multicolinéarité dans notre modèle.
 
 -   Nuages de point vis à vis de Y
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    # PART_75
-    g2_1 <- ggplot(data, aes(x = DENS_MED_LIB, y = PART_75)) + 
-      geom_point() +
-      labs(
-        title = "Relation entre la densité de médecins libéraux et la \npart de la pop. âgée de +75 ans",
-        x = "Densité de médecins libéraux",
-        y = "Part de la population âgée de plus de 75 ans"
-      ) +
-      theme(
-        plot.title = element_text(size = 8),
-        axis.title.x = element_text(size = 7),
-        axis.title.y = element_text(size = 7)
-      )
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# PART_75
+g2_1 <- ggplot(data, aes(x = DENS_MED_LIB, y = PART_75)) + 
+  geom_point() +
+  labs(
+    title = "Relation entre la densité de médecins libéraux et la \npart de la pop. âgée de +75 ans",
+    x = "Densité de médecins libéraux",
+    y = "Part de la population âgée de plus de 75 ans"
+  ) +
+  theme(
+    plot.title = element_text(size = 8),
+    axis.title.x = element_text(size = 7),
+    axis.title.y = element_text(size = 7)
+  )
 
-    g2_2 <- ggplot(data, aes(x = DENS_MED_LIB, y = log(PART_75))) + 
-      geom_point() +
-      geom_smooth(method = "lm", se = TRUE) +
-      labs(
-        title = "Relation entre la densité de médecins libéraux et la part \nde la pop. âgée de +75 ans",
-        x = "Densité de médecins libéraux",
-        y = "log(Part de la population âgée de plus de 75 ans)"
-      ) +
-      theme(
-        plot.title = element_text(size = 8),
-        axis.title.x = element_text(size = 7),
-        axis.title.y = element_text(size = 7)
-      )
+g2_2 <- ggplot(data, aes(x = DENS_MED_LIB, y = log(PART_75))) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Relation entre la densité de médecins libéraux et la part \nde la pop. âgée de +75 ans",
+    x = "Densité de médecins libéraux",
+    y = "log(Part de la population âgée de plus de 75 ans)"
+  ) +
+  theme(
+    plot.title = element_text(size = 8),
+    axis.title.x = element_text(size = 7),
+    axis.title.y = element_text(size = 7)
+  )
 
-    # PART_IMPOT
-    g3_1 <- ggplot(data, aes(x = DENS_MED_LIB, y = PART_IMPOT)) + 
-      geom_point() +
-      labs(
-        title = "Relation entre la densité de médecins libéraux et la part \ndes ménages imposables",
-        x = "Densité de médecins libéraux",
-        y = "Part des ménages imposables"
-      ) +
-      theme(
-        plot.title = element_text(size = 8),
-        axis.title.x = element_text(size = 7),
-        axis.title.y = element_text(size = 7)
-      )
+# PART_IMPOT
+g3_1 <- ggplot(data, aes(x = DENS_MED_LIB, y = PART_IMPOT)) + 
+  geom_point() +
+  labs(
+    title = "Relation entre la densité de médecins libéraux et la part \ndes ménages imposables",
+    x = "Densité de médecins libéraux",
+    y = "Part des ménages imposables"
+  ) +
+  theme(
+    plot.title = element_text(size = 8),
+    axis.title.x = element_text(size = 7),
+    axis.title.y = element_text(size = 7)
+  )
 
-    g3_2 <- ggplot(data, aes(x = DENS_MED_LIB, y = log(PART_IMPOT))) + 
-      geom_point() +
-      geom_smooth(method = "lm", se = TRUE) +
-      labs(
-        title = "Relation entre la densité de médecins libéraux et la part \ndes ménages imposables",
-        x = "Densité de médecins libéraux",
-        y = "log(Part des ménages imposables)"
-      ) +
-      theme(
-        plot.title = element_text(size = 8),
-        axis.title.x = element_text(size = 7),
-        axis.title.y = element_text(size = 7)
-      )
+g3_2 <- ggplot(data, aes(x = DENS_MED_LIB, y = log(PART_IMPOT))) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Relation entre la densité de médecins libéraux et la part \ndes ménages imposables",
+    x = "Densité de médecins libéraux",
+    y = "log(Part des ménages imposables)"
+  ) +
+  theme(
+    plot.title = element_text(size = 8),
+    axis.title.x = element_text(size = 7),
+    axis.title.y = element_text(size = 7)
+  )
 
-    grid.arrange(g2_1,g2_2,g3_1,g3_2)
-    ```
+grid.arrange(g2_1,g2_2,g3_1,g3_2)
+```
 
-    Sur les nuages de points à gauche, on représente la relation entre la densité de médecins libéraux et la part de la population agée de 75 ans ou plus (haut à gauche) ainsi que la part des ménages imposables (en bas à gauche)
+Sur les nuages de points à gauche, on représente la relation entre la densité de médecins libéraux et la part de la population agée de 75 ans ou plus (haut à gauche) ainsi que la part des ménages imposables (en bas à gauche)
 
-    Sur les nuages de points à droite, on applique cette fois le logarithme sur notre variable d'ordonnées afin de limiter l'effet des valeurs aberrantes. Les nouveaux nuages de points sont beaucoup plus linéaires et l'effet des valeurs aberrantes est amoindri.
+Sur les nuages de points à droite, on applique cette fois le logarithme sur notre variable d'ordonnées afin de limiter l'effet des valeurs aberrantes. Les nouveaux nuages de points sont beaucoup plus linéaires et l'effet des valeurs aberrantes est amoindri.
 
 -   Corrélation vis à vis de Y
 
-    Les nuages de points mettent en évidence des relations cohérentes avec les résultats obtenus lors des tests précédents, notamment les corrélations de Pearson. La pente des droites de régression suggère que les relations observées entre les variables explicatives et la variable expliquée sont majoritairement faibles à modérées et de signe conforme aux corrélations calculées
+Les nuages de points mettent en évidence des relations cohérentes avec les résultats obtenus lors des tests précédents, notamment les corrélations de Pearson. La pente des droites de régression suggère que les relations observées entre les variables explicatives et la variable expliquée sont majoritairement faibles à modérées et de signe conforme aux corrélations calculées
 
-    Ainsi, l’analyse graphique confirme visuellement l’absence de relations contradictoires avec les résultats statistiques.
+Ainsi, l’analyse graphique confirme visuellement l’absence de relations contradictoires avec les résultats statistiques.
 
 # **Analyse et discussion des résultats**
 
@@ -534,28 +535,28 @@ Commentaire :
 
 -   La moyenne estimée des résidus est de l’ordre de -5.78 × 10⁻¹⁷, soit une valeur extrêmement proche de zéro. L’intervalle de confiance à 95 % contient la valeur nulle et la p-value du test est égale à 1. Ainsi, même à un seuil de significativité très exigeant de 0,1 %, on ne peut pas rejeter l’hypothèse nulle selon laquelle la moyenne des résidus est égale à zéro.
 
-    Ce résultat est conforme aux propriétés attendues du modèle de régression linéaire et suggère l’absence de biais systématique dans les erreurs de prédiction, ce qui renforce la validité et la robustesse des estimations obtenues.
+Ce résultat est conforme aux propriétés attendues du modèle de régression linéaire et suggère l’absence de biais systématique dans les erreurs de prédiction, ce qui renforce la validité et la robustesse des estimations obtenues.
 
-    Cependant, ce test ne permet pas de conclure sur la forme de la distribution des résidus. Afin d’évaluer plus précisément l’hypothèse de normalité, un test de Shapiro-Wilk est mis en œuvre :
+Cependant, ce test ne permet pas de conclure sur la forme de la distribution des résidus. Afin d’évaluer plus précisément l’hypothèse de normalité, un test de Shapiro-Wilk est mis en œuvre :
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    shapiro.test(reg_model2$residuals)
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+shapiro.test(reg_model2$residuals)
 
-    # QQ-plot des résidus pour vérifier visuellement la normalité
-    qqnorm(
-      residuals(reg_model2),
-      main = "QQ-plot des résidus du modèle"
-    )
-    qqline(residuals(reg), col = "red")
-    ```
+# QQ-plot des résidus pour vérifier visuellement la normalité
+qqnorm(
+  residuals(reg_model2),
+  main = "QQ-plot des résidus du modèle"
+)
+qqline(residuals(reg), col = "red")
+```
 
 Commentaires :
 
 -   Le test de Shapiro-Wilk est utilisé afin d’évaluer l’hypothèse de normalité des résidus. L’hypothèse nulle du test stipule que les résidus suivent une distribution normale.
 
-    Dans notre cas, la statistique de test est égale à 0,994 et la p-value associée est de 0,292. Cette p-value étant largement supérieure au seuil de significativité de 5 %, nous ne rejetons pas l’hypothèse nulle de normalité des résidus.
+Dans notre cas, la statistique de test est égale à 0,994 et la p-value associée est de 0,292. Cette p-value étant largement supérieure au seuil de significativité de 5 %, nous ne rejetons pas l’hypothèse nulle de normalité des résidus.
 
-    Ainsi, les résidus peuvent être considérés comme distribués normalement. Cette conclusion renforce la validité des tests statistiques usuels réalisés à partir du modèle estimé et contribue à confirmer la robustesse des résultats obtenus.
+Ainsi, les résidus peuvent être considérés comme distribués normalement. Cette conclusion renforce la validité des tests statistiques usuels réalisés à partir du modèle estimé et contribue à confirmer la robustesse des résultats obtenus.
 
 -   Le QQ-plot des résidus montre que la plupart des points suivent la droite théorique, ce qui suggère que les résidus de notre modèle sont approximativement distribués normalement. Cette observation visuelle confirme les résultats du test de Shapiro-Wilk et indique que l’hypothèse de normalité des erreurs est correcte, renforçant la fiabilité des tests statistiques effectués sur les coefficients du modèle.
 
@@ -563,8 +564,8 @@ Nous pouvons ensuite vérifier l'hypothèse d'homoscédasticité, car elle est l
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 plot(reg$fitted.values, reg_model2$residuals,
-     xlab = "Valeurs ajustées",
-     ylab = "Résidus")
+ xlab = "Valeurs ajustées",
+ ylab = "Résidus")
 abline(h = 0)
 ```
 
@@ -590,21 +591,20 @@ seuil_cook <- 4/n
 
 # Identification des individus
 aberrants <- which(cooks.distance(reg_model2) > seuil_cook)
-aberrants
-data_clean <- data[-aberrants, ]
+data <- data[-aberrants, ]
 
 reg_clean <-
-  lm(   
-    DENS_MED_LIB ~ DENSITE + 
-    log(PART_75) + 
-    TAUX_ACTIV +     
-    log(PART_IMPOT) + 
-    PART_TRANS_COMM + 
-    UNIV +     
-    PART_PHARMA + 
-    DENS_INF + 
-    DENS_KIN,   
-    data = data_clean) 
+lm(   
+DENS_MED_LIB ~ DENSITE + 
+log(PART_75) + 
+TAUX_ACTIV +     
+log(PART_IMPOT) + 
+PART_TRANS_COMM + 
+UNIV +     
+PART_PHARMA + 
+DENS_INF + 
+DENS_KIN,   
+data = data) 
 
 summary(reg_clean)$r.squared
 
@@ -632,24 +632,24 @@ Nous comparons ici l’estimation par Moindres Carrés Ordinaires avec une estim
 #on suppose que la variance des erreurs est proportionnelle à PART_75
 #on pondère par 1 / PART_75
 reg_MCG <- lm(
-  DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV + 
-    log(PART_IMPOT) + PART_TRANS_COMM + UNIV + PART_PHARMA + 
-    DENS_INF + DENS_KIN,
-  data = data_clean,
-  weights = 1 / PART_75
+DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV + 
+log(PART_IMPOT) + PART_TRANS_COMM + UNIV + PART_PHARMA + 
+DENS_INF + DENS_KIN,
+data = data,
+weights = 1 / PART_75
 )
 
 # *comparaison 
 stargazer(
-  reg_clean, reg_MCG,
-  header = FALSE,
-  title = "Comparaison de l'estimation MCO et MCG",
-  type = "text",        
-  keep.stat = "n",     
-  column.labels = c("MCO", "MCG"),
-  dep.var.labels.include = FALSE,
-  model.numbers = FALSE,
-  dep.var.caption = "Variable dépendante : DENS_MED_LIB"
+reg_clean, reg_MCG,
+header = FALSE,
+title = "Comparaison de l'estimation MCO et MCG",
+type = "text",        
+keep.stat = "n",     
+column.labels = c("MCO", "MCG"),
+dep.var.labels.include = FALSE,
+model.numbers = FALSE,
+dep.var.caption = "Variable dépendante : DENS_MED_LIB"
 )
 
 ```
@@ -679,15 +679,15 @@ Ensuite, un second modèle avec des interactions entre plusieurs variables afin 
 ```{r, echo=FALSE}
 # Test de 2 modèles
 reg_nl <- lm(
-  DENS_MED_LIB ~ DENSITE + UNIV + 
-    log(PART_75) + TAUX_ACTIV + PART_TRANS_COMM + I(PART_PHARMA^2) + DENS_KIN,
-  data = data_clean
+DENS_MED_LIB ~ DENSITE + UNIV + 
+log(PART_75) + TAUX_ACTIV + PART_TRANS_COMM + I(PART_PHARMA^2) + DENS_KIN,
+data = data
 )
 summary(reg_nl)$coefficients
 
 reg_n2 <- lm(DENS_MED_LIB ~ TAUX_ACTIV * DENS_KIN + I(TAUX_ACTIV^2) + 
-                    log(PART_TRANS_COMM) + UNIV*log(PART_PHARMA) + I(DENS_KIN^2),
-                    data = data_clean)
+                log(PART_TRANS_COMM) + UNIV*log(PART_PHARMA) + I(DENS_KIN^2),
+                data = data)
 summary(reg_n2)$coefficients
 ```
 
@@ -697,33 +697,33 @@ Les résultats du second modèle montrent que la densité de médecins libéraux
 
 Cela nous indique qu’un modèle simple avec quelques transformations permet de capter correctement les principaux effets tout en restant facile à interpréter.
 
-+--------------------+-----------------------------------------------------+-------------+
-| Modèle             | Transformation appliquée aux variables explicatives | R^2^        |
-+====================+:===================================================:+============:+
-| 1 (modèle de base) | Aucune modification                                 | 0.7411      |
-+--------------------+-----------------------------------------------------+-------------+
-| 2                  | | PART_75 —\> *log*(PART_75)                        | 0.7419      |
-|                    |                                                     |             |
-|                    | PART_IMPOT —\> *log*(PART_IMPOT)                    |             |
-+--------------------+-----------------------------------------------------+-------------+
-| 3                  | PART_75 —\> *log*(PART_75)                          | 0.7417      |
-|                    |                                                     |             |
-|                    | PART_PHARMA —\> PART_PHARMA^2^                      |             |
-|                    |                                                     |             |
-|                    | PART_IMPOT —\> Supprimé                             |             |
-|                    |                                                     |             |
-|                    | DENS_INF —\> Supprimé                               |             |
-+--------------------+-----------------------------------------------------+-------------+
-| 4                  | TAUX ACTIV, DENS_KIN —\> TAUX_ACTIV \* DENS_KIN     | 0.7238      |
-|                    |                                                     |             |
-|                    | PART_TRANS_COMM —\> *log*(PART_TRANS_COMM)          |             |
-|                    |                                                     |             |
-|                    | UNIV, PART_PHARMA —\> UNIV \* *log*(PART_PHARMA)    |             |
-|                    |                                                     |             |
-|                    | DENS_KIN —\> DENS_KIN^2^                            |             |
-|                    |                                                     |             |
-|                    | TAUX_ACTIV —\> TAUX_ACTIV^2^                        |             |
-+--------------------+-----------------------------------------------------+-------------+
++--------------------+-----------------------------------------------------+--------------+
+| Modèle             | Transformation appliquée aux variables explicatives | R^2^         |
++====================+:===================================================:+=============:+
+| 1 (modèle de base) | Aucune modification                                 | 0.7411       |
++--------------------+-----------------------------------------------------+--------------+
+| 2                  | | PART_75 —\> *log*(PART_75)                        | 0.7419       |
+|                    |                                                     |              |
+|                    | PART_IMPOT —\> *log*(PART_IMPOT)                    |              |
++--------------------+-----------------------------------------------------+--------------+
+| 3                  | PART_75 —\> *log*(PART_75)                          | 0.7417       |
+|                    |                                                     |              |
+|                    | PART_PHARMA —\> PART_PHARMA^2^                      |              |
+|                    |                                                     |              |
+|                    | PART_IMPOT —\> Supprimé                             |              |
+|                    |                                                     |              |
+|                    | DENS_INF —\> Supprimé                               |              |
++--------------------+-----------------------------------------------------+--------------+
+| 4                  | TAUX ACTIV, DENS_KIN —\> TAUX_ACTIV \* DENS_KIN     | 0.7238       |
+|                    |                                                     |              |
+|                    | PART_TRANS_COMM —\> *log*(PART_TRANS_COMM)          |              |
+|                    |                                                     |              |
+|                    | UNIV, PART_PHARMA —\> UNIV \* *log*(PART_PHARMA)    |              |
+|                    |                                                     |              |
+|                    | DENS_KIN —\> DENS_KIN^2^                            |              |
+|                    |                                                     |              |
+|                    | TAUX_ACTIV —\> TAUX_ACTIV^2^                        |              |
++--------------------+-----------------------------------------------------+--------------+
 
 : Synthèse des transformations de variables
 
@@ -738,22 +738,22 @@ data_avec_univ <- data[data$UNIV == "Présente", ]
 
 # Estimation des modèles sur les sous-échantillons
 modele_sans_univ <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
-                          PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
-                          DENS_INF + DENS_KIN,
-                        data = data_sans_univ)
+                      PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
+                      DENS_INF + DENS_KIN,
+                    data = data_sans_univ)
 scr_sans <- sum(modele_sans_univ$residuals^2)
 
 modele_avec_univ <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
-                          PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
-                          DENS_INF + DENS_KIN,
-                        data = data_avec_univ)
+                      PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
+                      DENS_INF + DENS_KIN,
+                    data = data_avec_univ)
 scr_avec <- sum(modele_avec_univ$residuals^2)
 
 # Modèle sur l'ensemble de l'échantillon
 modele_total <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
-                     PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
-                     DENS_INF + DENS_KIN + UNIV,
-                   data = data)
+                 PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
+                 DENS_INF + DENS_KIN + UNIV,
+               data = data)
 scr_total <- sum(modele_total$residuals^2)
 
 # Degrés de liberté
@@ -771,27 +771,27 @@ pvalue
 
 Le test de Chow indique qu'il n'y a pas de changement structurel significatif selon la présence d’une université (p-value = 0,37). Cela montre que les déterminants de la densité de médecins libéraux ne diffèrent pas entre territoires avec et sans université.
 
-# **Conclusion générale et perspectives**
+# **Conclusion générale de cette partie et perspectives**
 
 -   Rappel de la problématique et de la méthodologie :
 
-    L’objectif de ce projet était d’identifier les facteurs déterminant la densité de médecins généralistes libéraux sur les zones d’emploi françaises. Pour ce faire, nous avons construit un modèle de régression linéaire multiple intégrant des variables démographiques, économiques et structurelles. La robustesse des résultats a été vérifiée grâce à l’analyse des résidus, à des transformations logarithmiques et quadratiques, ainsi qu’à l’introduction d’interactions entre certaines variables importantes.
+L’objectif de ce projet était d’identifier les facteurs déterminant la densité de médecins généralistes libéraux sur les zones d’emploi françaises. Pour ce faire, nous avons construit un modèle de régression linéaire multiple intégrant des variables démographiques, économiques et structurelles. La robustesse des résultats a été vérifiée grâce à l’analyse des résidus, à des transformations logarithmiques et quadratiques, ainsi qu’à l’introduction d’interactions entre certaines variables importantes.
 
 -   Synthèse des résultats principaux
 
-    Nos analyses montrent que la densité de médecins libéraux est principalement influencée par :
+Nos analyses montrent que la densité de médecins libéraux est principalement influencée par :
 
-    Le dynamisme économique du territoire (taux d’activité de la population), la présence d’infrastructures universitaires et de santé (universités, pharmacies, densité de kinésithérapeutes)., l’usage des transports en commun, avec un effet plus modéré.
+Le dynamisme économique du territoire (taux d’activité de la population), la présence d’infrastructures universitaires et de santé (universités, pharmacies, densité de kinésithérapeutes)., l’usage des transports en commun, avec un effet plus modéré.
 
-    De plus, l’introduction de termes quadratiques et d’interactions a mis en évidence que l’effet de certaines variables, comme le taux d’activité varie selon leur niveau, et que le dynamisme économique et la présence de professionnels médicaux autre que les médecins, se renforcent mutuellement. Le test de Chow a également montré que la structure du modèle diffère entre territoires avec ou sans université.
+De plus, l’introduction de termes quadratiques et d’interactions a mis en évidence que l’effet de certaines variables, comme le taux d’activité varie selon leur niveau, et que le dynamisme économique et la présence de professionnels médicaux autre que les médecins, se renforcent mutuellement. Le test de Chow a également montré que la structure du modèle diffère entre territoires avec ou sans université.
 
 -   Contributions du mémoire, apports scientifiques et/ou applicatifs
 
-    Ce travail aide à mieux comprendre ce qui explique la présence de médecins libéraux sur un territoire. Les résultats montrent que des facteurs comme le dynamisme économique, la présence d’universités, de pharmacies ou de kinésithérapeutes influencent la densité de médecins. Ces informations peuvent servir aux décideurs pour mieux organiser les zones où il y a peu de médecins et développer les infrastructures nécessaires. Sur le plan scientifique, l’étude confirme l’intérêt d’utiliser des modèles prenant en compte les effets non linéaires et les interactions entre variables, comme le suggèrent Legendre [1] et Delattre & Samson [2].
+Ce travail aide à mieux comprendre ce qui explique la présence de médecins libéraux sur un territoire. Les résultats montrent que des facteurs comme le dynamisme économique, la présence d’universités, de pharmacies ou de kinésithérapeutes influencent la densité de médecins. Ces informations peuvent servir aux décideurs pour mieux organiser les zones où il y a peu de médecins et développer les infrastructures nécessaires. Sur le plan scientifique, l’étude confirme l’intérêt d’utiliser des modèles prenant en compte les effets non linéaires et les interactions entre variables, comme le suggèrent Legendre [1] et Delattre & Samson [2].
 
 -   Perspectives d’amélioration ou de recherche future
 
-    Une piste d’amélioration serait d’étudier l’évolution de la densité de médecins sur plusieurs années. Cela permettrait de mieux comprendre comment l’offre de soins change dans le temps et d’identifier les tendances ou dynamiques qui ne sont pas visibles avec une seule année de données. Ce type d’analyse pourrait aider à anticiper les besoins futurs et à adapter les politiques d’aménagement des territoires.
+Une piste d’amélioration serait d’étudier l’évolution de la densité de médecins sur plusieurs années. Cela permettrait de mieux comprendre comment l’offre de soins change dans le temps et d’identifier les tendances ou dynamiques qui ne sont pas visibles avec une seule année de données. Ce type d’analyse pourrait aider à anticiper les besoins futurs et à adapter les politiques d’aménagement des territoires.
 
 # Endogénéité et variables instrumentales
 
@@ -805,19 +805,19 @@ La méthode des Variables Instrumentales, et plus particulièrement l'estimateur
 
 Dans le cadre de notre modèle explicatif de la densité de médecins généralistes libéraux par zones d'emploi, deux variables nous apparaissent comme candidates à l'endogénéité pour des raisons économiques et structurelles : la densité d'infirmiers libéraux et la densité de kinésithérapeutes libéraux. Les médecins généralistes s'installent là où l'offre paramédicale est déjà développée, mais en retour, leur présence attire elle-même les paramédicaux.
 
-Dans notre modèle initial, les variables `DENS_INF` (densité d'infirmiers libéraux) et `DENS_KIN` (densité de kinésithérapeutes libéraux) ont été regroupées en une seule variable `DENS_PARA`, représentant la densité globale de professionnels paramédicaux libéraux. Ce regroupement se justifie par le fait que ces deux professions captent le même phénomène sous-jacent : la concentration de l'offre de soins non-médicale sur un territoire.
+Dans notre modèle initial, les variables `DENS_INF` (densité d'infirmiers libéraux) et `DENS_KIN` (densité de kinésithérapeutes libéraux) ont été regroupées en une seule variable `DENS_PARA` (et en ajoutant un bruit gaussien) représentant la densité globale de professionnels paramédicaux libéraux. Ce regroupement se justifie par le fait que ces deux professions captent le même phénomène sous-jacent : la concentration de l'offre de soins non-médicale sur un territoire.
 
 Nous allons donc procéder à la recherche d'un instrument pour `DENS_PARA`, corrélée avec la densité paramédicale mais décorrelé du terme d'erreur.
 
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 library(AER)
 data$DENS_PARA <- data$DENS_INF + data$DENS_KIN
 
 
 model_2sls <- ivreg(DENS_MED_LIB ~ DENS_PARA + DENSITE + log(PART_75) + TAUX_ACTIV + UNIV | 
-                    DENS_SAGE_FEMME + DENSITE + log(PART_75) + TAUX_ACTIV + UNIV, 
-                    data = data)
+                DENS_SAGE_FEMME + DENSITE + log(PART_75) + TAUX_ACTIV + UNIV, 
+                data = data)
 
 summary(model_2sls, diagnostics = TRUE)
 ```
@@ -828,109 +828,671 @@ summary(model_2sls, diagnostics = TRUE)
 
 La multicolinéarité désigne une situation dans laquelle certaines variables explicatives sont fortement corrélées entre elles. Bien qu’elle ne remette pas en cause la validité des estimateurs MCO en termes d’absence de biais, elle affecte leur précision : les variances des coefficients augmentent, les tests de significativité deviennent moins fiables, et l’interprétation individuelle des coefficients est rendue plus délicate.
 
-Dans le cadre de notre étude sur la densité de médecins généralistes libéraux par zone d’emploi, ce problème est particulièrement plausible. En effet, plusieurs variables explicatives mobilisées telles que la densité de population, la part de personnes âgées, le niveau d’activité ou encore la présence d’infrastructures universitaires sont susceptibles de capter des dimensions proches de l’attractivité ou du dynamisme territorial. Cette proximité conceptuelle peut induire des corrélations élevées entre variables.
+Dans le cadre de notre étude, plusieurs variables explicatives mobilisées telles que la densité de d'infirmiers ainsi que la densité de kinésithérapeutes sont susceptibles de capter des dimensions proches de l’attractivité ou du dynamisme territorial. Cette proximité conceptuelle peut induire des corrélations élevées entre nos variables.
 
-Par ailleurs, la variable DENS_PARA, construite comme agrégation de la densité d’infirmiers et de kinésithérapeutes, peut également être corrélée à d’autres indicateurs socio-économiques ou sanitaires du territoire, renforçant ainsi les risques de redondance informationnelle.
+Par ailleurs, la variable DENS_PARA, construite comme agrégation de la densité d’infirmiers et de kinésithérapeutes et à laquelle nous avons ajouté un bruit, peut également être corrélée à d’autres indicateurs socio-économiques ou sanitaires du territoire, renforçant ainsi les risques de redondance informationnelle.
 
-Afin d’évaluer la présence et l’ampleur de la multicolinéarité dans notre modèle, nous mobiliserons plusieurs outils complémentaires : l’analyse des corrélations entre variables explicatives, le calcul des facteurs d’inflation de variance (Variance Inflation Factors, VIF), ainsi que l’étude de la stabilité des coefficients estimés avant et après ajustement du modèle. Ces diagnostics permettront d’identifier d’éventuelles redondances et d’améliorer la spécification économétrique.
+Afin d'évaluer la présence et l'ampleur de la multicolinéarité, nous mobilisons deux outils complémentaires : la matrice de corrélation entre variables explicatives et les facteurs d'inflation de variance (VIF).
+
+## Diagnostic de la multicolinéarité
 
 ```{r, echo=FALSE}
-# Sélection des variables explicatives
-data$DENS_PARA <- data$DENS_INF + data$DENS_KIN
-vars <- data[, c("PART_75", "TAUX_ACTIV", 
-                 "PART_IMPOT", "PART_TRANS_COMM", "PART_PHARMA","DENS_INF", "DENS_KIN", "DENS_PARA")]
+# Construction de DENS_PARA avec bruit de DENS_INF et DENS_KIN
+set.seed(123)
+data$DENS_PARA <- data$DENS_INF + data$DENS_KIN + rnorm(nrow(data), mean = 0, sd = 0.5)
+
+# Sélection des variables explicatives d'intérêt
+vars <- data[, c("PART_75", "TAUX_ACTIV", "PART_IMPOT",
+             "PART_TRANS_COMM", "PART_PHARMA",
+             "DENS_INF", "DENS_KIN", "DENS_PARA")]
 
 # Matrice de corrélation
 corr_mat <- cor(vars, use = "complete.obs")
-ggcorrplot(corr_mat, 
-           hc.order = TRUE, 
-           type = "lower",
-           lab = TRUE, 
-           lab_size = 3, 
-           method = "circle", 
-           colors = c("#E46726", "white", "#6D9EC1"),
-           title = "Matrice de corrélation des variables explicatives",
-           ggtheme = theme_minimal())
 
+ggcorrplot(corr_mat,
+       hc.order = TRUE,
+       type = "lower",
+       lab = TRUE,
+       lab_size = 3,
+       method = "circle",
+       colors = c("#E46726", "white", "#6D9EC1"),
+       title = "Matrice de corrélation des variables explicatives",
+       ggtheme = theme_minimal())
 
-
-
-# Repérer corrélations fortes (> 0.8)
-
-high_cor <- as.data.frame(which(abs(corr_mat) > 0.8 & abs(corr_mat) < 1, arr.ind = TRUE))
-# Mise en forme pour un affichage propre
-df_high_cor <- data.frame(
-  Variable_1 = rownames(corr_mat)[high_cor$row],
-  Variable_2 = colnames(corr_mat)[high_cor$col],
-  Correlation = mapply(function(r, c) corr_mat[r, c], high_cor$row, high_cor$col)
-)
-# On retire les doublons (ex: A-B et B-A)
-df_high_cor <- df_high_cor[df_high_cor$Variable_1 < df_high_cor$Variable_2, ]
-print(df_high_cor)
-```
-
-```{r, echo=FALSE}
-model_ols <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV + 
-                PART_IMPOT + PART_TRANS_COMM + UNIV + 
-                PART_PHARMA + DENS_KIN + DENS_INF + DENS_PARA, data = data)
+# Modèle MCO complet pour calcul des VIF
+model_ols <- lm(DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV +
+            log(PART_IMPOT) + PART_TRANS_COMM + UNIV +
+            PART_PHARMA + DENS_KIN + DENS_INF + DENS_PARA,
+            data = data)
 summary(model_ols)
-
-#Test du VIF
-#DENS_PARA = DENS_INF + DENS_KIN (colinéarité parfaite).
 vif(model_ols)
 ```
 
-La variable `DENS_PARA` apparaît avec une estimation `NA` dans le summary du model_ols. Ce résultat confirme que le logiciel a détecté une singularité (colinéarité parfaite).
+La matrice de corrélation révèle une corrélation très élevée entre `DENS_INF`, `DENS_KIN` et `DENS_PARA` (supérieure à 0,85), ce qui est attendu puisque `DENS_PARA` est par construction une combinaison linéaire des deux premières. Cette redondance informationnelle est caractéristique d'une multicolinéarité quasi-exacte.
 
-L'inclusion simultanée de DENS_INF, DENS_KIN et de leur somme DENS_PARA crée une relation linéaire exacte (DENS_PARA=DENS_INF+DENS_KIN).
+Les VIF confirment ce diagnostic : les valeurs obtenues pour `DENS_INF`, `DENS_KIN` et `DENS_PARA` dépassent le seuil critique de 10.
 
-Mathématiquement, la matrice des variables explicatives X n'est plus de rang plein, rendant la matrice (X′X) non inversible. Il en résulte :
+Les autres variables présentent des VIF acceptables (inférieurs à 5), ce qui suggère que le problème est localisé au triplet `DENS_INF` / `DENS_KIN` / `DENS_PARA`.
 
-Un R2_j​ de 1 lors des régressions auxiliaires
+Face à cette situation, deux familles de solutions sont envisagées : les méthodes de réduction de dimension (PCR et PLS), qui substituent aux variables originales des composantes orthogonales, et les méthodes de régularisation (Ridge, Lasso, Elastic Net), qui contraignent les coefficients pour limiter l'inflation de variance.
 
-Une division par zéro dans la formule du VIF, rendant le résultat indéfini (∞).
+## Réduction de dimension : PCR et PLS
 
-C'est pourquoi le logiciel ne peut produire de sortie numérique.
+### Principe
 
-```{r, echo=FALSE}
-# Installation si nécessaire
-library(pls)
+Les méthodes de réduction de dimension sont utilisées pour répondre à la multicolinéarité : plutôt que de travailler directement sur les variables corrélées, elles projettent l'espace des prédicteurs sur un sous-espace de dimension réduite composé de variables orthogonales.
 
-# On définit le modèle (on exclut DENS_PARA car c'est une somme exacte)
-# scale = TRUE est crucial pour normaliser les unités (page 9 du cours)
-model_pcr <- pcr(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV + 
-                 PART_IMPOT + PART_TRANS_COMM + UNIV + 
-                 PART_PHARMA + DENS_KIN + DENS_INF+ DENS_PARA, 
-                 data = data, 
-                 scale = TRUE, 
-                 validation = "CV") # Validation croisée pour choisir P
+La Régression sur Composantes Principales (PCR) effectue cette projection de manière non supervisée : les composantes sont choisies pour maximiser la variance expliquée dans X, indépendamment de la variable à expliquer Y. La régression est ensuite réalisée sur les k premières composantes retenues.
 
-# 1. Visualiser l'erreur pour choisir le nombre de composantes
-plot(RMSEP(model_pcr), legendpos = "topright", main = "Choix du nombre de composantes")
+La Régression Partial Least Squares (PLS) adopte une logique supervisée : les composantes sont construites de manière à maximiser la covariance entre X et Y. Cette approche est généralement plus efficace que la PCR en petit nombre de composantes, car elle oriente directement la réduction de dimension vers le pouvoir prédictif.
 
-# 2. Résumé du modèle
-summary(model_pcr)
+Dans les deux cas, le nombre optimal de composantes est sélectionné par validation croisée, en minimisant le RMSEP (Root Mean Square Error of Prediction).
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Formule(réutilisée pour PCR et PLS)
+formule <- DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV +
+       log(PART_IMPOT) + PART_TRANS_COMM + UNIV +
+       PART_PHARMA + DENS_KIN + DENS_INF + DENS_PARA
+
+#PCR
+pcr_model <- pcr(formule, data = data,
+             scale = TRUE, jackknife = TRUE, validation = "CV")
+
+#PLS
+pls_model <- plsr(formule, data = data,
+              scale = TRUE, jackknife = TRUE, validation = "CV")
+
+summary(pcr_model)
+summary(pls_model)
 ```
 
-La méthode du coude nous fournit 4 composantes
-
-Voici le pourcentage de variance expliquée par chaque composante.
+On regarde la variance expliquée par composantes.
 
 ```{r, echo=FALSE}
-
-explvar(model_pcr)
+explvar(pcr_model)
+explvar(pls_model)
 ```
 
-```{r, echo=FALSE}
+On en déduit le nombre de composantes du RMSEP.
 
-par(mfrow=c(2,2))
-validationplot(pcr_est,legendpos= "topright")
-validationplot(pcr_est, val.type="MSEP",legendpos= "topright")
-validationplot(pcr_est, val.type="R2")
+```{r, fig.width=10, fig.height=8, echo=FALSE}
+# 1. Alias pour éviter les erreurs de packages
+R2_pls <- pls::R2
 
+# 2. On réduit les marges
+par(mfrow = c(2, 2), mar = c(4, 4, 3, 2))
 
-plot(pcr_est, ncomp=18,  line=TRUE)
+# 3. PCR
+pls::validationplot(pcr_model, val.type = "RMSEP")
+title(main = "PCR: RMSEP")
+pls::validationplot(pcr_model, val.type = "MSEP")
+title(main = "PCR: MSEP")
+pls::validationplot(pcr_model, val.type = "R2")
+title(main = "PCR: R2")
+plot(pcr_model, ncomp = 5, line = TRUE)
+title(main = "PCR: Obs vs Pred")
+
+# 4. PLS
+par(mfrow = c(2, 2), mar = c(4, 4, 3, 2))
+pls::validationplot(pls_model, val.type = "RMSEP")
+title(main = "PLS: RMSEP")
+pls::validationplot(pls_model, val.type = "MSEP")
+title(main = "PLS: MSEP")
+pls::validationplot(pls_model, val.type = "R2")
+title(main = "PLS: R2")
+
+par(mfrow = c(1, 1))
 ```
+
+L'analyse des graphiques de validation croisée permet de fixer le nombre optimal de composantes pour chaque modèle :
+
+-   Pour la PCR, on retient 5 composantes. Ce choix correspond au critère du coude, observé sur le graphique du RMSEP : c'est le point où l'erreur de prédiction cesse de diminuer de façon importante. Avec 5 composantes, on explique environ 88 % de la variance, offrant un excellent compromis entre précision et simplicité.
+
+-   Pour la PLS, on retient 3 composantes. La courbe d'erreur (RMSEP) se stabilise beaucoup plus vite que pour la PCR. La règle du minimum du RMSEP montre qu'ajouter une 4ème composante n'améliore plus le modèle de manière significative.
+
+Le fait que la PLS requiert moins de composantes (3 contre 5) illustre son avantage structurel : en orientant la décomposition vers Y, elle se révèle être une méthode plus parcimonieuse que la PCR.
+
+### Coefficients et graphiques
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ncomp_pcr_opt = 5
+
+coefficients(pcr_model, ncomp = ncomp_pcr_opt)
+coefplot(pcr_model, ncomp = ncomp_pcr_opt, se.whiskers = TRUE,
+     labels = prednames(pcr_model), cex.axis = 0.5,
+     main = "Coefficients PCR à 5 composantes")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ncomp_pls_opt = 3
+
+coefficients(pls_model, ncomp = ncomp_pls_opt)
+coefplot(pls_model, ncomp = ncomp_pls_opt, se.whiskers = TRUE,
+     labels = prednames(pls_model), cex.axis = 0.5,
+     main = "Coefficients PLS à 3 composantes")
+```
+
+### Prédiction sur échantillon (CARET)
+
+Le package caret simplifie et standardise la création des modèles statistiques.
+
+Grâce à l'option `tuneLength`, il procède à une optimisation automatique et sélectionne le nombre de composantes optimal qui offre le meilleur équilibre entre précision et simplicité.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(500)
+data <- na.omit(data)
+train.samples <- data$DENS_MED_LIB |>
+createDataPartition(p = 0.5, list = FALSE)
+train <- data[train.samples, ]
+test  <- data[-train.samples, ]
+
+ctrl_cv10 <- trainControl(method = "cv", number = 10)
+
+# PCR
+model_pcr <- train(formule, data = train,
+               method = "pcr", scale = TRUE,
+               trControl = ctrl_cv10,
+               tuneLength = 11)
+
+# PLS
+model_pls <- train(formule, data = train,
+               method = "pls", scale = TRUE,
+               trControl = ctrl_cv10,
+               tuneLength = 11)
+```
+
+Visualisation et vérification de la séléction de CARET
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+plot(model_pcr, main = "Évolution du RMSE")
+plot(model_pls, main = "Évolution du RMSE")
+
+# Afficher le meilleur paramètre choisi
+cat("Nombre optimal de composantes (PCR) :", model_pcr$bestTune$ncomp)
+cat("\nNombre optimal de composantes (PLS) :", model_pls$bestTune$ncomp)
+```
+
+Pour affiner nos modèles, nous avons utilisé le package `caret`, qui calcule automatiquement le nombre de composantes minimisant l'erreur de prédiction (RMSEP). Pour la PCR, l’algorithme a sélectionné 6 composantes. C'est une de plus que les 5 que nous avions repérées visuellement avec la méthode du "coude", mais ce petit décalage est normal : le calcul mathématique est plus précis. Pour la PLS, le résultat est sans équivoque avec seulement 3 composantes.
+
+Prédictions et performances :
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Prédictions sur l'échantillon test
+pcr_pred <- predict(model_pcr, newdata = test)
+pls_pred <- predict(model_pls, newdata = test)
+
+cat("PCR\n"); print(postResample(pred = pcr_pred, obs = test$DENS_MED_LIB))
+cat("PLS\n"); print(postResample(pred = pls_pred, obs = test$DENS_MED_LIB))
+```
+
+Les résultats confirment la supériorité de l'approche PLS. Avec un RMSE plus faible (1,18) et un R² plus élevé (0,65), elle offre une meilleure capacité prédictive que la PCR. Sa capacité à expliquer davantage de variance avec seulement 3 composantes en fait le modèle le plus performant et le plus pertinent pour analyser les disparités de densité médicale sur le territoire.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+model_mco <- train(formule, data = train, method = "lm", trControl = ctrl_cv10)
+
+# Extraction des performances de chaque modèle
+perf_mco <- model_mco$results[, c("RMSE", "Rsquared", "MAE")]
+perf_pcr <- model_pcr$results[model_pcr$results$ncomp == 6, c("RMSE", "Rsquared", "MAE")]
+perf_pls <- model_pls$results[model_pls$results$ncomp == 3, c("RMSE", "Rsquared", "MAE")]
+
+# Création du tableau de comparaison
+comparaison <- rbind(MCO = perf_mco, PCR = perf_pcr, PLS = perf_pls)
+print(round(comparaison, 4))
+```
+
+Au regard de notre modèle entraîné sur 50% des données, l'évaluation sur échantillon de test démontre la performance du modèle PLS, qui obtient le RMSE le plus faible (1,1263), surpassant ainsi les modèles MCO (1,1431) et PCR (1,1706). Ce résultat confirme que, malgré la qualité du modèle MCO après nettoyage, la méthode PLS parvient à mieux extraire l'information pertinente grâce à ses composantes latentes, offrant ainsi une meilleure précision prédictive. En conclusion, ce travail valide la pertinence des approches de réduction de dimension pour modéliser la densité médicale, tout en soulignant que l'attractivité des zones d'emploi repose sur un équilibre complexe entre dynamisme économique, infrastructures universitaires et offre de soins paramédicaux.
+
+Nous allons maintenant procéder à l'étude des méthodes de régularisation : Ridge, Lasso, Elastic Net
+
+### Cadre
+
+Les méthodes de régularisation répondent au problème de multicolinéarité en ajoutant une pénalité à la fonction de perte des MCO. L'estimateur minimise ainsi :
+
+$$\hat{\beta} = \arg\min_\beta \left[ \sum_{i=1}^n (y_i - x_i^\top \beta)^2 + P(\beta, \lambda) \right]$$
+
+où $P(\beta, \lambda)$ est le terme de pénalité contrôlé par l'hyperparamètre $\lambda$. Plus $\lambda$ est grand, plus les coefficients sont contraints vers zéro. La valeur optimale de $\lambda$ est déterminée par validation croisée.
+
+### Prétraitement : centrage et réduction
+
+Avant l'estimation, les variables sont centrées et réduites (standardisées). Ce prétraitement est indispensable pour les méthodes de régularisation : la pénalité s'applique à tous les coefficients de manière uniforme.
+
+Centrage et réduction des données à l'aide du package CARET
+
+**Le log ne marche pas dans la formule de reg jsp pq**
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(100)
+data <- data |> na.omit()
+
+# Centrage-réduction
+ss    <- preProcess(as.data.frame(data), method = c("center", "scale"))
+data  <- predict(ss, as.data.frame(data))
+
+#Partition
+set.seed(100)
+train.samples <- data$DENS_MED_LIB |>
+createDataPartition(p = 0.5, list = FALSE)
+train <- data[train.samples, ]
+test  <- data[-train.samples, ]
+
+# Formule sans log() : nécessaire après standardisation
+# (les log() introduisent des incompatibilités avec preProcess)
+formule_reg <- DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
+           PART_IMPOT + PART_TRANS_COMM + UNIV +
+           PART_PHARMA + DENS_KIN + DENS_INF + DENS_PARA
+
+lambda_grid  <- 10^seq(-3, 3, length = 100)
+ctrl_cv10    <- trainControl("cv", number = 10)
+```
+
+**Claude : 'Remarque sur les transformations logarithmiques : les `log()` ont été retirés de la formule pour les méthodes de régularisation. Après le centrage- réduction de `preProcess`, les variables ont déjà été transformées sur une échelle normalisée, ce qui rend la transformation logarithmique redondante et source d'erreurs si certaines valeurs sont négatives post-centrage.'**
+
+### Estimation avec la méthode Ridge
+
+La régression Ridge ajoute une pénalité proportionnelle à la somme des carrés des coefficients :
+
+$$P_{\text{Ridge}}(\beta, \lambda) = \lambda \sum_{j=1}^p \beta_j^2$$
+
+Cette pénalité contracte tous les coefficients vers zéro de manière continue, mais ne les annule jamais exactement. Elle est particulièrement adaptée aux situations de multicolinéarité car elle distribue l'information entre les variables corrélées plutôt que de les éliminer arbitrairement.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(100)
+ridge <- train(
+formule_reg, data = train, method = "glmnet",
+trControl = ctrl_cv10,
+tuneGrid  = expand.grid(.alpha = 0, .lambda = lambda_grid)
+)
+
+bestLambda_ridge <- ridge$bestTune$lambda
+cat("Lambda optimal (Ridge) :", round(bestLambda_ridge, 4), "\n")
+plot(ridge, main = "Ridge : RMSE en fonction de log(λ)")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+pred_ridge <- predict(ridge, test)
+# Utilisation explicite des fonctions de caret pour éviter les conflits
+perf_ridge <- data.frame(
+Méthode = "Ridge",
+RMSE    = caret::RMSE(as.numeric(pred_ridge), test$DENS_MED_LIB),
+R2      = caret::R2(as.numeric(pred_ridge),   test$DENS_MED_LIB)
+)
+print(perf_ridge)
+
+# Coeff et importances
+finalModel_ridge      <- ridge$finalModel
+coefficients_ridge    <- coef(finalModel_ridge, s = bestLambda_ridge)
+print(coefficients_ridge)
+
+plot(varImp(ridge, scale = TRUE), main = "Ridge : Importance des variables")
+
+# Trajectoire des coefficients
+plot(ridge$finalModel, xvar = "lambda", label = TRUE)
+abline(v = log(bestLambda_ridge), col = "red", lty = 2, lwd = 1.5)
+title("Ridge : Estimation des paramètres en fonction de log(λ)", line = 3)
+```
+
+Le λ optimal sélectionné par validation croisée est de 0,066. Ce niveau de pénalisation produit un RMSE de 0,510 et un R² de 0,740 sur l'échantillon test.
+
+L'examen de la trajectoire des coefficients en fonction de λ montre bien qu'à mesure que λ augmente, les coefficients de `DENS_INF`, `DENS_KIN` et `DENS_PARA` convergent progressivement vers des valeurs faibles (mais non nulles).
+
+### Estimation avec la méthode Lasso
+
+La régression Lasso (*Least Absolute Shrinkage and Selection Operator*) substitue une pénalité en valeur absolue à la pénalité quadratique de Ridge :
+
+$$P_{\text{Lasso}}(\beta, \lambda) = \lambda \sum_{j=1}^p |\beta_j|$$
+
+La propriété fondamentale du Lasso est de produire des solutions parcimonieuses : pour des valeurs de λ suffisamment grandes, certains coefficients sont exactement annulés, réalisant ainsi une sélection automatique de variables. Cela en fait un outil de sélection et de régularisation.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(200)
+lambda_grid_lasso <- 10^seq(-6, 2, length = 100)
+
+lasso <- train(
+formule_reg, data = train, method = "glmnet",
+trControl = ctrl_cv10,
+tuneGrid  = expand.grid(.alpha = 1, .lambda = lambda_grid_lasso)
+)
+
+bestLambda_lasso <- lasso$bestTune$lambda
+cat("Alpha optimal (Lasso) :", lasso$bestTune$alpha, "\n")
+cat("Lambda optimal (Lasso) :", round(bestLambda_lasso, 4), "\n")
+plot(lasso, main = "Lasso : RMSE en fonction de log(λ)")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+pred_lasso <- predict(lasso, test)
+perf_lasso <- data.frame(
+Méthode = "Lasso",
+RMSE    = caret::RMSE(as.numeric(pred_lasso), test$DENS_MED_LIB),
+R2      = caret::R2(as.numeric(pred_lasso),   test$DENS_MED_LIB)
+)
+print(perf_lasso)
+
+finalModel_lasso   <- lasso$finalModel
+coefficients_lasso <- coef(finalModel_lasso, s = bestLambda_lasso)
+print(coefficients_lasso)
+
+plot(varImp(lasso, scale = TRUE), main = "Lasso : Importance des variables normalisées")
+
+plot(lasso$finalModel, xvar = "lambda", label = TRUE)
+abline(v = log(bestLambda_lasso), col = "red", lty = 2, lwd = 1.5)
+title("Lasso : Estimation des paramètres en fonction de log(λ)", line = 3)
+```
+
+Le λ optimal retenu est de 0,013 (avec α = 1). Le Lasso atteint un RMSE de 0,507 et un R² de 0,742. On obtient donc des performances légèrement supérieures à Ridge.
+
+La trajectoire des coefficients révèle le comportement caractéristique du Lasso : à mesure que λ croît, certains coefficients tombent à zéro avant d'autres.
+
+Au λ optimal, on observe que `DENS_PARA et DENS_INF` (variables redondantes) sont effectivement éliminées, ce qui montre la capacité du Lasso à résoudre la multicolinéarité par sélection.
+
+Ce résultat montre que Lasso « choisit » en éliminant les redondances.
+
+### Estimation avec la méthode Elastic net
+
+L'Elastic Net propose une pénalité combinant les termes Ridge et Lasso :
+
+$$P_{\text{EN}}(\beta, \lambda, \alpha) = \lambda \left[ \frac{1-\alpha}{2} \sum_j \beta_j^2 + \alpha \sum_j |\beta_j| \right]$$
+
+Les deux hyperparamètres α et λ sont optimisés simultanément par validation croisée.
+
+L'Elastic Net est particulièrement adapté aux contextes de multicolinéarité forte : le terme Ridge stabilise la sélection, tandis que le terme Lasso maintient la propriété de parcimonie.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(100)
+elastic <- train(
+formule_reg, data = train, method = "glmnet",
+trControl = ctrl_cv10,
+tuneLength = 10
+)
+
+bestLambda_elastic <- elastic$bestTune$lambda
+bestAlpha_elastic  <- elastic$bestTune$alpha
+cat("Alpha optimal (Elastic Net) :", round(bestAlpha_elastic, 4), "\n")
+cat("Lambda optimal (Elastic Net) :", round(bestLambda_elastic, 4), "\n")
+
+plot(elastic,
+ main  = "Elastic Net : Validation croisée pour différents α",
+ xlab  = "Log(λ)",
+ ylab  = "RMSE")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+pred_elastic <- predict(elastic, test)
+perf_elastic <- data.frame(
+Méthode = "Elastic Net",
+RMSE    = caret::RMSE(pred_elastic, test$DENS_MED_LIB),
+R2      = caret::R2(pred_elastic,   test$DENS_MED_LIB)
+)
+print(perf_elastic)
+
+finalModel_elastic   <- elastic$finalModel
+coefficients_elastic <- coef(finalModel_elastic, s = bestLambda_elastic)
+print(coefficients_elastic)
+
+plot(varImp(elastic, scale = TRUE),
+ main = "Elastic Net : Importance des variables (normalisée)")
+
+plot(elastic$finalModel, xvar = "lambda", label = TRUE)
+abline(v = log(bestLambda_elastic), col = "red", lty = 2, lwd = 1.5)
+title("Elastic Net : Estimation des paramètres en fonction de log(λ)", line = 3)
+```
+
+L'Elastic Net sélectionne un λ optimal de 0,024, avec un α à 0.8. Le modèle atteint un RMSE de 0,509 et un R² de 0,742, des performances quasi-identiques au Lasso.
+
+α est proche de 1, cela indique que la pénalité L1 domine et que le modèle se comporte essentiellement comme un Lasso.
+
+Cela explique également les performances similaires.
+
+## Comparaison des modèles
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+models <- list(ridge = ridge, lasso = lasso, elastic = elastic)
+resamples(models) |> summary(metric = "RMSE")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Tableau de synthèse des performances sur l'échantillon test
+resultats <- rbind(perf_ridge, perf_lasso, perf_elastic)
+knitr::kable(resultats, digits = 4, caption = "Performances sur l'échantillon test")
+```
+
+Les trois méthodes de régularisation produisent des performances très proches, avec un léger avantage au Lasso (RMSE ≈ 0,507 contre 0,5102 pour Ridge). Ce résultat est cohérent avec la nature du problème : la multicolinéarité est localisée sur un sous-ensemble de variables, et la parcimonie du Lasso (qui peut simplement éliminer les redondances) constitue une réponse efficace.
+
+Concernant les méthodes de réduction de dimension, la PLS (3 composantes) offre un bon compromis entre parcimonie et performance. Elle demeure cependant moins directement interprétable que les méthodes de régularisation, dont les coefficients sont exprimés dans l'espace original des variables.
+
+En termes de recommandation, le Lasso constitue probablement le meilleur choix pour ce type d'analyse : ses performances prédictives sont parmi les meilleures, il identifie explicitement les variables redondantes, et ses coefficients restent directement interprétables dans l'espace initial.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+library(dplyr)
+
+# Création du tableau de synthèse basé sur tes résultats resamples
+tableau_comparatif <- data.frame(
+Modèle = c("Lasso", "Elastic Net", "Ridge"),
+`RMSE Moyen` = c(0.6096, 0.6164, 0.6641),
+`RMSE Médian` = c(0.5963, 0.5856, 0.5991),
+`RMSE Max` = c(0.7853, 0.9248, 1.3181)
+)
+
+# Affichage du tableau formaté pour le rapport
+kable(tableau_comparatif, 
+  digits = 4, 
+  caption = "Comparaison des performances des modèles régularisés (RMSE)",
+  col.names = c("Modèle", "RMSE Moyen", "RMSE Médian", "RMSE Maximum"))
+```
+
+# Double Machine Learning
+
+## Cadre général
+
+Les méthodes de régularisation et de réduction de dimension étudiées précédemment permettent de traiter la multicolinéarité et d'améliorer les performances prédictives, mais elles ne sont pas conçues pour l'inférence causale. En présence de nombreux contrôles, un estimateur pénalisé comme le Lasso introduit un biais de régularisation sur les coefficients : la pénalité contracte l'ensemble des paramètres, y compris celui de la variable d'intérêt.
+
+Le Double Machine Learning (DML) propose modèle partiellement linéaire :$$Y_i = D_i \theta_0 + g_0(X_i) + \varepsilon_i$$ $$D_i = m_0(X_i) + v_i$$
+
+où $D_i$ est la variable de traitement d'intérêt, $X_i$ est un vecteur de contrôles potentiellement de grande dimension, $g_0$ et $m_0$ sont des fonctions inconnues et $\theta_0$ est le paramètre causal à estimer.
+
+Le DML procède en deux étapes (*nuisance estimation*) :
+
+1.  Régresser $Y$ sur $X$ pour obtenir les résidus $\tilde{Y} = Y - \hat{g}(X)$
+2.  Régresser $D$ sur $X$ pour obtenir les résidus $\tilde{D} = D - \hat{m}(X)$
+
+Puis $\theta_0$ est estimé par la régression de $\tilde{Y}$ sur $\tilde{D}$. Cette double régression élimine la confondance due aux contrôles $X$ et recentre l'estimation sur la variation de $D$ non expliquée par les covariables. **(?)**
+
+Pour éviter que le biais de régularisation se répercute sur $\hat{\theta}$, les modèles $\hat{g}$ et $\hat{m}$ sont estimés sur des sous-échantillons distincts de celui utilisé pour l'estimation finale.
+
+Dans notre application, nous utilisons un Elastic Net (`cv_glmnet`) comme learner pour les deux étapes nuisance.
+
+------------------------------------------------------------------------
+
+## Transformation des variables catégorielles
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+str(data)
+#Transformation des variables type facteurs en variables numériques
+dummy <- dummyVars(" ~ .", data=data)
+dataD <- data.frame(predict(dummy, newdata =  data))
+```
+
+## Estimation 1 : effet de la présence d'une université
+
+Cette première estimation vise à isoler l'effet causal de la présence d'une université (`UNIV.Présente`) sur la densité de médecins généralistes libéraux, après avoir nettoyé cet effet de toute la variation commune avec les autres covariables.
+
+L'hypothèse sous-jacente est qu'une université contribue à l'attractivité médicale d'un territoire via la formation de praticiens mais que cet effet est susceptible d'être confondu avec d'autres caractéristiques territoriales (densité de population, niveau de revenu, etc.).
+
+Cette estimation se fait via la méthode de Lasso, pour la variable `UNIV.Présente.`
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(3141)
+
+doubleml_data1 <- double_ml_data_from_data_frame(
+dataD,
+y_col  = "DENS_MED_LIB",
+d_cols = "UNIV.Présente"  # la colonne dummy déjà existante dans dataD
+)
+
+ml_l1 <- lrn("regr.cv_glmnet", s = "lambda.min")
+ml_m1 <- lrn("regr.cv_glmnet", s = "lambda.min")
+
+doubleml1_plr <- DoubleMLPLR$new(doubleml_data1, ml_l1, ml_m1, n_folds = 5)
+doubleml1_plr$fit()
+doubleml1_plr$summary()
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+doubleml1_plr$summary()
+```
+
+La p-valeur obtenue pour `UNIV.Présente` est de 0,153, ce qui ne permet pas de rejeter l'hypothèse nulle d'absence d'effet au seuil usuel de 5 %. Autrement dit, une fois contrôlée l'ensemble des caractéristiques observables du territoire, la présence d'une université n'apparaît pas comme un déterminant statistiquement significatif de la densité médicale.
+
+## Estimation 2 : effets conjoints de `UNIV.Présente` et `PART_75`
+
+Cette seconde estimation étend le modèle en traitant simultanément deux variables d'intérêt : la présence d'une université et la part des personnes âgées de 75 ans et plus. L'inclusion de `PART_75` comme variable de traitement permet d'estimer son effet causal sur la densité médicale, en tenant compte de la structure territoriale sous-jacente. On s'attend à ce qu'une proportion élevée de personnes âgées génère une demande de soins accrue, susceptible d'attirer des médecins.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(3141)
+
+# Deux variables de traitement simultanées
+doubleml_data <- double_ml_data_from_data_frame(
+dataD,
+y_col  = "DENS_MED_LIB",
+d_cols = c("UNIV.Présente", "PART_75")
+)
+
+ml_l <- lrn("regr.cv_glmnet", s = "lambda.min")
+ml_m <- lrn("regr.cv_glmnet", s = "lambda.min")
+
+doubleml_plr <- DoubleMLPLR$new(doubleml_data, ml_l, ml_m)
+doubleml_plr$fit()
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+doubleml_plr$summary()
+```
+
+La p-valeur de `PART_75` est de 0.0438, soit inférieure au seuil de 5 % : son effet sur la densité de médecins est significatif.
+
+Ce résultat est cohérent avec l'intuition économique : les territoires à forte proportion de personnes âgées génèrent une demande de soins primaires plus élevée, ce qui constitue une incitation à l'installation pour les médecins généralistes.
+
+La variable `UNIV.Présente` reste non significative.
+
+## Estimation 3 : DML avec tuning automatique des hyperparamètres
+
+Les deux estimations précédentes utilisaient `lambda.min` comme hyperparamètre du learner, valeur déterminée par validation croisée interne à `cv_glmnet`.
+
+Cependant, pour que le modèle Double Machine Learning soit le plus précis possible, il ne faut pas choisir ses réglages au hasard. Nous avons donc utilisé une procédure de tuning automatique.
+
+L'objectif est de trouver le learner idéal : celui qui permet de nettoyer les données sans perdre d'informations importantes. En laissant l'algorithme identifier lui-même le meilleur paramètre par validation croisée, on s'assure que l'effet mesuré de l'université sur la densité médicale est le plus fiable et le plus robuste possible.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(1234)
+ml_l = lrn("regr.glmnet")
+ml_m = lrn("regr.glmnet")
+doubleml_plr = DoubleMLPLR$new(doubleml_data, ml_l, ml_m)
+
+par_grids = list(
+"ml_l" = ParamSet$new(list(
+lambda = p_dbl("lambda", lower = 0.05, upper = 0.1, special_vals = list(), default = 0.075))),
+"ml_m" = ParamSet$new(list(
+lambda = p_dbl("lambda", lower = 0.05, upper = 0.1, special_vals = list(), default = 0.075))))
+
+
+tune_settings = list(terminator = trm("evals", n_evals = 100),
+algorithm = tnr("grid_search", resolution = 11),
+rsmp_tune = rsmp("cv", folds = 5),
+measure = list("ml_l" = msr("regr.mse"),
+"ml_m" = msr("regr.mse")))
+
+doubleml_plr$tune(param_set = par_grids, tune_settings = tune_settings)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Résultat du tuning pour PART_75
+doubleml_plr$tuning_res$PART_75
+```
+
+Tuned parameters
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+str(doubleml_plr$params)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# estimate model and summary
+doubleml_plr$fit()
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+doubleml_plr$summary()
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#doubleml_plr$tune(param_set = par_grids, tune_settings = tune_settings, tune_on_folds=TRUE)
+#doubleml_plr$fit()
+#doubleml_plr$summary()
+```
+
+# Comparaison des modèles
+
+Cette section rassemble les performances prédictives de l'ensemble des méthodes mises en œuvre : MCO, Ridge, Lasso, PCR, PLS et DML. La comparaison s'effectue sur la base du RMSE et du R².
+
+Il est important de rappeler que le DML n'est pas un modèle prédictif : son objectif est de mesurer l'influence d'un paramètre spécifique, et non la minimisation de l'erreur de prédiction globale.
+
+Sa présence dans ce tableau comparatif est donc à interpréter avec précaution : ses métriques de prédiction reflètent la performance des étapes nuisance, pas celles du modèle structurel.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Tous les modèles sont ré-estimés ici sur les mêmes données centrées-réduites
+# (train / test issus du preProcess), avec la même formule (formule_reg, sans log).
+# Ridge et Lasso ont déjà été estimés dans ce contexte — on les réutilise.
+
+set.seed(100)
+ctrl_final <- trainControl(method = "cv", number = 10)
+
+# MCO sur données centrées-réduites
+mco_final <- train(formule_reg, data = train, method = "lm",
+                   trControl = ctrl_final)
+
+# PCR sur données centrées-réduites
+pcr_final <- train(formule_reg, data = train, method = "pcr",
+                   scale = TRUE, trControl = ctrl_final, tuneLength = 11)
+
+# PLS sur données centrées-réduites
+pls_final <- train(formule_reg, data = train, method = "pls",
+                   scale = TRUE, trControl = ctrl_final, tuneLength = 11)
+
+# 1. Prédictions sur le même échantillon test centré-réduit
+pred_mco   <- as.numeric(predict(mco_final,  newdata = test))
+pred_ridge <- as.numeric(predict(ridge,      newdata = test))
+pred_lasso <- as.numeric(predict(lasso,      newdata = test))
+pred_pcr   <- as.numeric(predict(pcr_final,  newdata = test))
+pred_pls   <- as.numeric(predict(pls_final,  newdata = test))
+
+y_test <- test$DENS_MED_LIB
+
+# 2. Fonction de métriques
+perf_metrics <- function(actual, predicted) {
+  rmse <- sqrt(mean((actual - predicted)^2, na.rm = TRUE))
+  r2   <- 1 - sum((actual - predicted)^2, na.rm = TRUE) /
+              sum((actual - mean(actual, na.rm = TRUE))^2, na.rm = TRUE)
+  return(c(RMSE = round(rmse, 4), R2 = round(r2, 4)))
+}
+
+# 3. Tableau comparatif
+comparison <- rbind(
+  MCO   = perf_metrics(y_test, pred_mco),
+  Ridge = perf_metrics(y_test, pred_ridge),
+  Lasso = perf_metrics(y_test, pred_lasso),
+  PCR   = perf_metrics(y_test, pred_pcr),
+  PLS   = perf_metrics(y_test, pred_pls)
+)
+
+print(comparison)
+```
+
+Les résultats du tableau comparatif montrent que les cinq modèles affichent des performances très proches, avec un R² avoisinant 0,74 et un RMSE autour de 0,51 sur l'échantillon test. Le modèle Lasso se distingue néanmoins légèrement, en obtenant le meilleur RMSE (0,5070) et le R² le plus élevé (0,7406). Ce léger avantage prédictif s'explique par sa capacité à annuler exactement les coefficients des variables redondantes — ici DENS_INF et DENS_PARA — répondant ainsi directement au problème de multicolinéarité identifié. Sur le plan de l'interprétabilité, le Lasso présente également un avantage décisif : contrairement à la PCR et à la PLS, dont les composantes latentes n'ont pas de signification économique directe, les coefficients du Lasso restent exprimés dans l'espace original des variables et sont donc directement interprétables. Par rapport au Ridge, qui contracte tous les coefficients sans jamais en éliminer, le Lasso opère une véritable sélection de variables, rendant le modèle plus parcimonieux et plus lisible. Enfin, les MCO obtiennent des performances quasi-identiques (RMSE = 0,5081, R² = 0,7395), mais sans le mécanisme de sélection automatique du Lasso, ils conservent des variables dont la contribution est marginale. Au regard de ces éléments, le Lasso constitue le meilleur compromis entre qualité d'ajustement et interprétabilité dans le cadre de cette étude.
+
+# **Conclusion générale de cette deuxième partie**
+
+L'analyse des déterminants de la densité médicale souligne l'importance de traiter l'endogénéité, notamment la causalité inverse avec les professions paramédicales, corrigée ici par la méthode des variables instrumentales (2SLS). Pour pallier les problèmes de multicolinéarité, la comparaison des différentes méthodes de régularisation a désigné le modèle Lasso comme le plus pertinent : malgré un $R^2$ légèrement inférieur aux MCO (0,7306 contre 0,7419), sa capacité à sélectionner les variables les plus robustes garantit une meilleure fiabilité des résultats. En somme, ce travail démontre que l'attractivité des zones d'emploi repose sur un écosystème combinant dynamisme économique, infrastructures universitaires et offre de soins paramédicaux, offrant ainsi des pistes concrètes pour orienter les politiques de lutte contre les déserts médicaux.
 
 # Bibliographie - Source
 
@@ -938,14 +1500,14 @@ plot(pcr_est, ncomp=18,  line=TRUE)
 
 -   <https://statistiques-locales.insee.fr/#c=home>
 
-    [1] Legendre, B. (2020, février). En 2018, les territoires sous-dotés en médecins généralistes concernent près de 6 % de la population (Études & Résultats, n° 1144). Direction de la recherche, des études, de l’évaluation et des statistiques (DREES).
+[1] Legendre, B. (2020, février). En 2018, les territoires sous-dotés en médecins généralistes concernent près de 6 % de la population (Études & Résultats, n° 1144). Direction de la recherche, des études, de l’évaluation et des statistiques (DREES).
 
-    Lien : <https://medias.amf.asso.fr/upload/files/etude_drees.pdf>
+Lien : <https://medias.amf.asso.fr/upload/files/etude_drees.pdf>
 
-    [2] Delattre, E., & Samson, A.-L. (2013). Stratégies de localisation des médecins généralistes français : mécanismes économiques ou hédonistes ? (Working paper, hal-01685914). HAL. 
+[2] Delattre, E., & Samson, A.-L. (2013). Stratégies de localisation des médecins généralistes français : mécanismes économiques ou hédonistes ? (Working paper, hal-01685914). HAL. 
 
-    [3] Vergier, N. & Chaput, H. (2017). Déserts médicaux : comment les définir ? Comment les mesurer ? Doss. Dress., 17, 1–63.
+[3] Vergier, N. & Chaput, H. (2017). Déserts médicaux : comment les définir ? Comment les mesurer ? Doss. Dress., 17, 1–63.
 
-    [4] Dumontet M. Féminisation, activité libérale et lieu d’installation: quels enjeux en médecine générale?: Analyses micro-économétriques de l’offre de soins. Université Paris Dauphine; 2015.
+[4] Dumontet M. Féminisation, activité libérale et lieu d’installation: quels enjeux en médecine générale?: Analyses micro-économétriques de l’offre de soins. Université Paris Dauphine; 2015.
 
-    [5] INSEE : [https://www.insee.fr/fr/information/4652957](#0){.uri}
+[5] INSEE : [https://www.insee.fr/fr/information/4652957](#0){.uri}
