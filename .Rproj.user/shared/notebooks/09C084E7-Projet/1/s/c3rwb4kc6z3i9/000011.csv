@@ -1,7 +1,0 @@
-"0","library(AER)"
-"0",""
-"0","modele_iv <- ivreg(DENS_MED_LIB ~ DENS_PARA |"
-"0","                   DENS_SAGE_FEMME,"
-"0","                   data = data)"
-"2","Erreur dans eval(predvars, data, env) : objet 'DENS_PARA' introuvable
-"
