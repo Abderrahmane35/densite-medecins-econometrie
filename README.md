@@ -10,11 +10,11 @@ Quels facteurs démographiques, économiques et structurels expliquent que certa
 
 ## Résultats en image
 
-|  |  |
-|-----------------------------------------|---------------------------------------|
-| \*\*Déterminants du modèle\*\* Coefficients standardisés et significativité, variable par variable. ![Coefficients du modèle](src/figures/coefficients.png){width="388"} | \*\*Un effet université significatif\*\* Distribution de la densité médicale selon la présence d'une faculté de médecine. ![](images/clipboard-2984750214.png){width="368"} |
-| \*\*Une offre très contrastée sur le territoire\*\* Densité de médecins libéraux par zone d'emploi, France entière. ![Carte de densité](src/figures/histogramme_densite.png){width="456"} | \*\*Un modèle ajusté\*\*
-Panel de diagnostic des résidus (homoscédasticité, normalité, points influents)![Top / Bottom territoires](src/figures/diagnostic_residus.png) |
+![](images/clipboard-1701057242.png)
+
+![](images/clipboard-1494314137.png)
+
+![](images/clipboard-749023452.png)
 
 ## Ce que montre l'analyse
 
@@ -29,7 +29,7 @@ Panel de diagnostic des résidus (homoscédasticité, normalité, points influen
 ## Méthodologie
 
 | Étape | Traitement |
-|------------------|------------------------------------------------------|
+|-------------------|-----------------------------------------------------|
 | Données | 306 zones d'emploi françaises, Insee (2021-2022) + CartoSanté (2024) + UniFac |
 | Nettoyage | Suppression des individus à valeurs manquantes |
 | Modèle de référence | MCO, 9 variables explicatives |
