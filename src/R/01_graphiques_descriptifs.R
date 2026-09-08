@@ -1,25 +1,16 @@
 # ============================================================================
 # 01_graphiques_descriptifs.R
-# Refonte des figures descriptives et de diagnostic existantes.
+# Figures descriptives et de diagnostic du rapport.
 #
-# Pour chaque figure du .Rmd d'origine, décision prise (cf. DECISIONS.md) :
-#
-#   - Histogramme DENS_MED_LIB              -> GARDÉ, redessiné
-#   - Boxplots isolés (PART_TRANS_COMM,
-#     PART_IMPOT côte à côte)               -> FUSIONNÉ dans un panel comparatif
-#   - Nuages de points x4 (brut + log
-#     pour PART_75 et PART_IMPOT)           -> SIMPLIFIÉ : on ne garde que la
-#                                               version log (utile au modèle),
-#                                               panel à 2 figures au lieu de 4
-#   - corrplot() (base graphique)           -> REMPLACÉ par ggcorrplot stylé
-#   - qqnorm()/qqline(), plot(reg, which=4/5),
-#     plot(fitted, residuals) (base R)      -> REMPLACÉS par un panel de
-#                                               diagnostic ggplot 2x2 (patchwork)
-#   - Tableau R² modèles 1 à 4              -> COMPLÉTÉ par un graphique-barres
-#                                               de comparaison (valeur ajoutée :
-#                                               visualise en un coup d'oeil le
-#                                               faible gain marginal des
-#                                               spécifications alternatives)
+# Ces fonctions remplacent les graphiques base R du premier jet :
+#   - histogramme de DENS_MED_LIB, redessiné avec densité et moyenne
+#   - panel comparatif des distributions standardisées (remplace des boxplots
+#     isolés, non comparables entre eux)
+#   - nuages de points en échelle log uniquement (la version utile au modèle)
+#   - matrice de corrélation via ggcorrplot (remplace corrplot)
+#   - panel 2x2 de diagnostic des résidus via patchwork (remplace qqnorm,
+#     plot(model, which = 4/5) et plot(fitted, residuals))
+#   - barres de comparaison des R² entre spécifications
 # ============================================================================
 
 library(ggplot2)
@@ -178,24 +169,26 @@ fig_diagnostic_residus <- function(model) {
 
 # ---- 6. Comparaison des R² entre spécifications (nouveau, complète le tableau)
 
-fig_comparaison_r2 <- function() {
+fig_comparaison_r2 <- function(r2 = c("1. Base" = 0.7411,
+                                       "2. Log(PART_75, PART_IMPOT)" = 0.7419,
+                                       "3. + quadratique pharma" = 0.7417,
+                                       "4. + interactions" = 0.7238)) {
   df <- data.frame(
-    modele = factor(c("1. Base", "2. Log(PART_75, PART_IMPOT)",
-                       "3. + quadratique pharma", "4. + interactions"),
-                     levels = c("1. Base", "2. Log(PART_75, PART_IMPOT)",
-                                "3. + quadratique pharma", "4. + interactions")),
-    r2 = c(0.7411, 0.7419, 0.7417, 0.7238)
+    modele = factor(names(r2), levels = names(r2)),
+    r2 = as.numeric(r2)
   )
+  df$meilleur <- df$r2 == max(df$r2)
 
-  ggplot(df, aes(x = modele, y = r2)) +
-    geom_col(fill = pal$secondaire, width = 0.55) +
-    geom_col(data = df[df$r2 == max(df$r2), ], fill = pal$accent, width = 0.55) +
+  ggplot(df, aes(x = modele, y = r2, fill = meilleur)) +
+    geom_col(width = 0.55) +
+    scale_fill_manual(values = c("FALSE" = pal$secondaire, "TRUE" = pal$accent),
+                      guide = "none") +
     geom_text(aes(label = scales::number(r2, accuracy = 0.001)),
               vjust = -0.6, color = pal$primaire, size = 3.4, family = .font_base) +
     coord_cartesian(ylim = c(0.7, 0.75)) +
     labs(
       title = "Un gain d'ajustement marginal au-delà du modèle log",
-      subtitle = "R² ajusté selon la spécification retenue",
+      subtitle = "R² selon la spécification retenue",
       x = NULL, y = expression(R^2)
     ) +
     theme_zones_emploi(grid = "y") +

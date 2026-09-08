@@ -1,17 +1,21 @@
-# --- Sécurité ---
-.env
-*.log
+# Sessions et historique R
+.Rhistory
+.RData
+.Rproj.user/
+*-Ex.R
 
-# --- OS ---
+# Sorties de rendu R Markdown
+*.html
+/*_cache/
+/*_files/
+src/*_cache/
+src/*_files/
+src/Projet.html
+
+# Environnements
+.Renviron
+.env
+
+# OS
 .DS_Store
 Thumbs.db
-
-# --- Node / JS ---
-node_modules/
-dist/
-
-# --- Python ---
-__pycache__/
-*.py[cod]
-venv/
-.Rproj.user

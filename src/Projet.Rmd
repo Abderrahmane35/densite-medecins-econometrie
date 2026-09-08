@@ -9,9 +9,9 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(cache = TRUE) #Activer le cache des chunks pour accélérer les recompilations
-options("install.lock"=FALSE) #Désactiver le verrouillage d’installation des packages
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) ## configure le chemin du dossier automatiquement
+# knitr exécute déjà les chunks depuis le dossier du .Rmd (src/),
+# les chemins relatifs "R/..." et "../data/..." sont donc valides tels quels.
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 ```{r}
@@ -203,25 +203,22 @@ source("R/03_cartes.R")
 
 -   Récupération des données
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    #Imports des librairies
+    ```{r}
     library(dplyr)
     library(ggplot2)
     library(gridExtra)
-    library(viridis)
-    library(ellipse)
-    library(GGally)
     library(lmtest)
-    library(corrplot)
     library(car)
     library(knitr)
     library(stargazer)
     library(ggcorrplot)
-    library(car)
 
-    #récupération des données
+    # Le CSV a deux lignes d'en-tête : libellés longs (ignorés) puis noms courts.
     data <- read.csv("../data/medecins.csv",
                      sep = ";", header = TRUE, skip = 1, fileEncoding = "latin1")
+
+    # Densité de sages-femmes : présente dans le fichier mais hors modèle.
+    data$DENS_SAGE_FEMME <- NULL
     ```
 
 -   Sélection des variables
@@ -230,24 +227,16 @@ source("R/03_cartes.R")
 
     La densité de population a été séparée en trois groupes : faible densité, densité moyenne et forte densité. Les seuils ont été calculés en fonction des quantiles à 33% et 66% de la distribution de la densité.
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    dens <- data$DENSITE
-    quantile(dens, probs = c(0.33, 0.66), na.rm = TRUE)
+    ```{r}
+    seuils_dens <- quantile(data$DENSITE, probs = c(0.33, 0.66), na.rm = TRUE)
 
-    data$DENSITE <- ifelse(dens >= 123.248, 
-                                 "Faible",
-                           ifelse(dens >= 56.496 & dens <= 123.248,
-                                 "Moyenne",
-                                 "Forte"))
+    data$DENSITE <- cut(
+      data$DENSITE,
+      breaks = c(-Inf, seuils_dens, Inf),
+      labels = c("Faible", "Moyenne", "Forte")
+    )
 
-
-    univ <- data$UNIV
-    data$UNIV <- ifelse(univ == 0,
-                            "Aucune",
-                            "Présente")
-
-    data$DENSITE <- factor(data$DENSITE)
-    data$UNIV <- factor(data$UNIV)
+    data$UNIV <- factor(ifelse(data$UNIV == 0, "Aucune", "Présente"))
     ```
 
 -   Sélection d'individus : données manquantes
@@ -258,10 +247,12 @@ source("R/03_cartes.R")
 
     Cette méthode nous permet de ne garder que des données concrètes et de simuler plus finement une donnée manquante.
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    data <- data[rowSums(is.na(data)) < 2, ] #Suppression des individus avec plus de 2 valeurs manquantes
+    ```{r}
+    # On retire les zones d'emploi ayant 2 valeurs manquantes ou plus.
+    data <- data[rowSums(is.na(data)) < 2, ]
 
-    data <- data|> #Remplace les NA par la moyenne en fonction de la densité de la ville.
+    # Les NA restants sont imputés par la moyenne de leur strate de densité.
+    data <- data |>
       group_by(DENSITE) |>
       mutate(across(where(is.numeric),
                     ~ ifelse(is.na(.), mean(., na.rm=TRUE), .))) |>
@@ -281,7 +272,7 @@ source("R/03_cartes.R")
     kable(prop_univ, digits = 2, caption = "Proportion de zones d'emploi selon la présence d'une université")
     ```
 
-    -   Dans notre échantillon, 9.8% des zones d'emplois comportent une faculté de médecine.
+    -   Dans notre échantillon, 9.9 % des zones d'emploi comportent une faculté de médecine.
 
     -   On vérifie bien que la densité de population est bien répartie en 3 parties à peu près égales, comme nous l'avons construit lors de la transformation en variable qualitative.
 
@@ -294,68 +285,50 @@ source("R/03_cartes.R")
 
     -   On remarque une différence significative de la densité de médecins généralistes libéraux en fonction de la présence ou non d'une faculté de médecine. La moyenne est de 9.59 lorsque la zone d'emploi en possède une contre 7.438 lorsque ce n'est pas le cas. On a également une variance plus petite ; lorsque une faculté existe dans la zone, on a au minimum 4.5 médecins pour 10 000 habitants (contre 1.6 pour 10 000).
 
-    -   Concernant la densité de population, on remarque que lorsqu'elle est faible, la densité de médecins généralistes libéraux est légèrement plus forte (plus d'un point de différence avec les autres cas). Il y'a également une forte disparité entre les zones d'emploi et de grands écarts entre les extrêmes.
+    ```{r}
+    fig_universite_densite(data)
+    ```
 
-        Cela laisse penser que la densité de médecins libéraux est plus forte dans les zones où des facultés de médecine ont été construite et que la densité est en moyenne un peu plus élevées dans les zones moins dense.
+    -   Concernant la densité de population, la densité de médecins libéraux est proche entre les zones peu et moyennement denses (environ 7,2 à 7,3 pour 10 000 habitants) et un peu plus élevée dans les zones les plus denses (environ 8,4). Les écarts entre zones d'emploi restent importants dans chaque groupe.
+
+        Ces deux constats descriptifs suggèrent que la densité de médecins libéraux est surtout tirée par la présence d'une faculté de médecine et, dans une moindre mesure, par le niveau d'urbanisation du territoire.
 
     ```{r, echo=FALSE}
     summary(data[c("DENS_MED_LIB","PART_75", "TAUX_ACTIV", "PART_IMPOT")])
     summary(data[c("PART_TRANS_COMM","DENS_INF", "DENS_KIN","PART_PHARMA")])
     ```
 
-    -   En moyenne dans notre échantillon, la densité de médecins libéraux est de 7.4 pour 10 000 habitants. La moyenne est assez proche de notre médiane comme dans toute les variables de notre modèle. On peut supposer que cette faible différence s'explique par la nature de nos individus (des zones d'emplois), qui regroupent plusieurs communes ce qui pourrait attenuer cette différence.
+    -   En moyenne dans notre échantillon, la densité de médecins libéraux est d'environ 7,6 pour 10 000 habitants. La moyenne est assez proche de la médiane, comme pour la plupart des variables du modèle. On peut supposer que cette faible différence s'explique par la nature de nos individus (des zones d'emplois), qui regroupent plusieurs communes ce qui pourrait attenuer cette différence.
 
         Il existe une dispersion assez importante puisque le maximum est 13.7 médecins pour 10 000 habitants contre seulement 1.6 pour le minimum.
+
+    ```{r, fig.height=6}
+    fig_top_bottom_territoires(data)
+    ```
 
     -   La part de la population utilisant principalement les transports en commun ne suit pas notre observation sur la différence entre moyenne et médiane. Cela pourrait s'expliquer par une valeur aberrante ; Paris avec 53% de sa population utilisant les transports en commun pour se déplacer.
 
 -   **Histogramme**
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    #pour les histogrammes
-    ggplot(data, aes(x=DENS_MED_LIB)) +  geom_histogram(color= "black", fill="green") + ggtitle("Histogramme de densité de médecins libéraux") + xlab("Densité") + ylab("Effectif")
+    ```{r}
+    fig_histogramme_densite(data)
     ```
 
     L'histogramme suggère une distribution plutôt régulière, et semblable à une loi normale. Il ne semble pas y avoir d'individus atypiques bien que la concentration en médecins à autour de 7 pour 10 000 habitants est la plus forte. La distribution est donc symétrique et les valeurs se concentrent entre 5 et 10 médecins. Donc la répartition des médecins est relativement homogène sur l'ensemble des territoires.
 
--   **Boites à moustache**
+-   **Dispersion des variables explicatives**
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-#Creation d'une fonction pour créer des boxplots 
-graph_boxplot <- function(variable, title = NULL) {
-  ggplot(data, aes(y = .data[[variable]])) +
-    geom_boxplot() +
-    theme(
-      legend.position = "none",
-      plot.title = element_text(size = 14)
-    ) +
-    ggtitle(title %||% paste("Boxplot de", variable)) +
-    xlab("")}
-
-#Boite à moustaches des personnes utilisant les transports en commun
-
-p6 <- graph_boxplot("PART_TRANS_COMM",
-                   "Part de la population utilisant les transports en commun pour se rendre au travail")
-
-p5 <- graph_boxplot("PART_IMPOT",
-                   "Part des ménages fiscaux imposables en 2021")
-
-
-grid.arrange(p5,p6, ncol = 2)
-
+```{r}
+fig_distributions_comparees(data)
 ```
 
-Commentaire pour le boxplot représentant la part de population utilisant les transports en commun pour se rendre au travail :
+Les distributions sont standardisées (z-scores) et classées par dispersion croissante, ce qui permet de les comparer sur une même échelle.
 
--   Nous observons que la boite est très écrasée vers le bas, ainsi nous en concluons que la majeure partie des zones d'emplois ont une part très faible d'usagers des transports en commun.
+-   La part d'actifs utilisant les transports en commun est la variable la plus asymétrique : la boîte est écrasée vers le bas et de nombreuses valeurs atypiques apparaissent vers le haut, tirées par quelques grandes agglomérations. Cette asymétrie justifie la transformation logarithmique testée plus loin.
 
--   Par ailleurs, nous observons de nombreuses valeurs atypiques, qui correspondent aux zones d'emploi où la part d'usagers de transports en communs est bien supérieure à la normale, ainsi nous en concluons qu'il y a une forte hétérogénéité au niveau des territoires sur le transport. Donc la dispersion n'est pas symétrique et étirée vers le haut.
+-   La part des ménages fiscaux imposés et la part des 75 ans ou plus présentent aussi des queues marquées, tandis que le taux d'activité reste concentré autour de sa moyenne.
 
-Commentaire pour le boxplot sur les ménages fiscaux imposables:
-
--   La répartition globale des ménages fiscaux imposables est inégale bien que nous observons qu'environ la moitié des ménages ont une part d'imposition inférieure et l'autre moitié, supérieure. La boite représente une faible dispersion autour de la médiane en témoigne les écarts entre les quartiles.
-
--   Nous retrouvons de fortes disparités, certains territoires affichent une part très faible tandis que certains territoires, très élevées par rapport à la médiane
+-   Ces écarts de dispersion motivent le passage au logarithme de `PART_75` et `PART_IMPOT` dans le modèle alternatif.
 
 ## Analyse descriptive bivariée des données
 
@@ -365,18 +338,11 @@ On regarde l’intensité de la liaison entre les différentes variables en util
 
     La matrice de corrélation permet de mesurer la force et le sens des relations entre les variables explicatives. Si un coefficient est trop élevé alors on soupçonne un problème de colinéarité entre deux variables.
 
-    ```{r, echo=FALSE}
-    numeric_cols <- sapply(data,is.numeric)
+    ```{r}
+    numeric_cols <- sapply(data, is.numeric)
     corr_matrix <- cor(data[, numeric_cols], use = "complete.obs")
 
-    corrplot(corr_matrix, 
-             method = "color",        
-             type = "upper",           # seulement la moitié supérieure
-             order = "hclust",         # regroupe les variables corrélées
-             addCoef.col = "black",  
-             tl.cex = 0.8,             
-             number.cex = 0.7       
-    )
+    fig_correlation(data)
     ```
 
     La valeur absolue du coefficient de corrélation entre chaques variables n'excède jamais 0.8, ce qui ne nous indique pas de soucis de colinéarité. On remarque cependant que ce coefficient vaut 0.75 entre la densité de médecins libéraux et la densité de kinésithérapeutes, ce qui est à surveiller.
@@ -387,12 +353,19 @@ On regarde l’intensité de la liaison entre les différentes variables en util
 
     La règle de Klein consiste à comparer le R^2^ global du modèle au carré du coefficient de corrélation.
 
-    ```{r, echo=FALSE}
-    reg <- lm(data = data,   DENS_MED_LIB ~ DENSITE +     PART_75 +     TAUX_ACTIV +     PART_IMPOT +     PART_TRANS_COMM +     UNIV +     PART_PHARMA +     DENS_INF +     DENS_KIN ) 
-    corr_matrix^2 > summary(reg)$r.squared
+    ```{r}
+    mod_base <- lm(
+      DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV + PART_IMPOT +
+        PART_TRANS_COMM + UNIV + PART_PHARMA + DENS_INF + DENS_KIN,
+      data = data
+    )
+
+    r2_base <- summary(mod_base)$r.squared
+    corr_hors_diag <- corr_matrix[lower.tri(corr_matrix)]
+    any(corr_hors_diag^2 > r2_base)
     ```
 
-    Le carré du coefficient de corrélation n'est jamais supérieur au R^2^, on ne peut toujours pas soupçonner de colinéarité entre les variables explicatives
+    Aucun carré de corrélation entre variables explicatives ne dépasse le R^2^ du modèle : la règle de Klein ne signale pas de colinéarité.
 
 -   Cohérence des signes
 
@@ -400,7 +373,7 @@ On regarde l’intensité de la liaison entre les différentes variables en util
 
     ```{r, echo=FALSE}
     corr_y <- cor(data[, numeric_cols], use = "complete.obs")[, "DENS_MED_LIB"]
-    coherence <- cbind(   coef = coef(reg),   corr = corr_y[names(coef(reg))] )
+    coherence <- cbind(   coef = coef(mod_base),   corr = corr_y[names(coef(mod_base))] )
     coherence[-1, ]
     ```
 
@@ -411,7 +384,7 @@ On regarde l’intensité de la liaison entre les différentes variables en util
     Le test du VIF nous permet de détecter la multicolinéarité entre les variables explicatives : il nous permet de mesurer à quel point la variance des coefficients est gonflée à cause des corrélations entre régresseurs.
 
     ```{r, echo=FALSE, warning=FALSE}
-    sqrt(vif(reg))
+    sqrt(vif(mod_base))
     ```
 
     Les valeurs obtenues sont toutes proches de 1 et bien inférieure aux seuils usuels de 5 ou 10, ce qui indique l'absence de multicolinéarité entre nos variables.
@@ -420,69 +393,11 @@ Au final, notre analyse ne révèle pas de corrélations élevées entre les var
 
 -   Nuages de point vis à vis de Y
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    # PART_75
-    g2_1 <- ggplot(data, aes(x = DENS_MED_LIB, y = PART_75)) + 
-      geom_point() +
-      labs(
-        title = "Relation entre la densité de médecins libéraux et la \npart de la pop. âgée de +75 ans",
-        x = "Densité de médecins libéraux",
-        y = "Part de la population âgée de plus de 75 ans"
-      ) +
-      theme(
-        plot.title = element_text(size = 8),
-        axis.title.x = element_text(size = 7),
-        axis.title.y = element_text(size = 7)
-      )
-
-    g2_2 <- ggplot(data, aes(x = DENS_MED_LIB, y = log(PART_75))) + 
-      geom_point() +
-      geom_smooth(method = "lm", se = TRUE) +
-      labs(
-        title = "Relation entre la densité de médecins libéraux et la part \nde la pop. âgée de +75 ans",
-        x = "Densité de médecins libéraux",
-        y = "log(Part de la population âgée de plus de 75 ans)"
-      ) +
-      theme(
-        plot.title = element_text(size = 8),
-        axis.title.x = element_text(size = 7),
-        axis.title.y = element_text(size = 7)
-      )
-
-    # PART_IMPOT
-    g3_1 <- ggplot(data, aes(x = DENS_MED_LIB, y = PART_IMPOT)) + 
-      geom_point() +
-      labs(
-        title = "Relation entre la densité de médecins libéraux et la part \ndes ménages imposables",
-        x = "Densité de médecins libéraux",
-        y = "Part des ménages imposables"
-      ) +
-      theme(
-        plot.title = element_text(size = 8),
-        axis.title.x = element_text(size = 7),
-        axis.title.y = element_text(size = 7)
-      )
-
-    g3_2 <- ggplot(data, aes(x = DENS_MED_LIB, y = log(PART_IMPOT))) + 
-      geom_point() +
-      geom_smooth(method = "lm", se = TRUE) +
-      labs(
-        title = "Relation entre la densité de médecins libéraux et la part \ndes ménages imposables",
-        x = "Densité de médecins libéraux",
-        y = "log(Part des ménages imposables)"
-      ) +
-      theme(
-        plot.title = element_text(size = 8),
-        axis.title.x = element_text(size = 7),
-        axis.title.y = element_text(size = 7)
-      )
-
-    grid.arrange(g2_1,g2_2,g3_1,g3_2)
+    ```{r}
+    fig_nuages_log(data)
     ```
 
-    Sur les nuages de points à gauche, on représente la relation entre la densité de médecins libéraux et la part de la population agée de 75 ans ou plus (haut à gauche) ainsi que la part des ménages imposables (en bas à gauche)
-
-    Sur les nuages de points à droite, on applique cette fois le logarithme sur notre variable d'ordonnées afin de limiter l'effet des valeurs aberrantes. Les nouveaux nuages de points sont beaucoup plus linéaires et l'effet des valeurs aberrantes est amoindri.
+    Les deux nuages représentent la densité de médecins libéraux en fonction du logarithme de la part des 75 ans ou plus, puis du logarithme de la part des ménages imposables. La transformation logarithmique linéarise la relation et limite l'effet des valeurs extrêmes, ce qui justifie son emploi dans le modèle de référence.
 
 -   Corrélation vis à vis de Y
 
@@ -500,7 +415,7 @@ Nous avons commençons par estimer un modèle linéaire expliquant la densité d
 
 ```{r, echo=FALSE}
 # Modèle linéaire en niveau   
-summary(reg)$r.squared
+summary(mod_base)$r.squared
 ```
 
 Nos précèdentes analyses nous ont permit d’identifier les principaux déterminants associés à la densité de médecins libéraux. Néanmoins, cette analyse descriptive nous a permis de mettre en évidence des indivus aberrants et des distributions asymétriques pour certaines variables explicatives, ce qui peut affecter la qualité de notre estimation.
@@ -514,8 +429,8 @@ Cette approche vise à améliorer l’ajustement du modèle. Ainsi, l'équation 
 $\text{DENS_MED_LIB}_i = \beta_0 + \beta_1 \, \text{DENSITE}_i+ \beta_2 \, \text{log(PART_75)}_i+ \beta_3 \, \text{TAUX_ACTIV}_i+ \beta_4 \, \text{log(PART_IMPOT)}_i+ \beta_5 \, \text{PART_TRANS_COMM}_i+ \beta_6 \, \text{UNIV}_i+ \beta_7 \, \text{PART_PHARMA}_i+ \beta_8 \, \text{DENS_INF}_i+ \beta_9 \, \text{DENS_KIN}_i+ \varepsilon_i$
 
 ```{r, echo=FALSE}
-reg_model2 <- lm(DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV + log(PART_IMPOT)+PART_TRANS_COMM + UNIV + PART_PHARMA + DENS_INF + DENS_KIN,   data = data )
-summary(reg_model2)$r.squared
+mod_log <- lm(DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV + log(PART_IMPOT)+PART_TRANS_COMM + UNIV + PART_PHARMA + DENS_INF + DENS_KIN,   data = data )
+summary(mod_log)$r.squared
 ```
 
 Dans ce modèle, nous obtenons un R^2^ légèrement supérieur (0.6952). Pour les variables en logarithme, les coefficients indiquent de combien la densité de médecins libéraux change en pourcentage quand la variable explicative change de 1 %.
@@ -534,7 +449,7 @@ Dans un premier temps, nous vérifions que les résidus sont bien centrés autou
 
 ```{r, echo=FALSE}
 #moyennes = 0 # Test (H0: moyenne résidus = 0; H1: moyenne résidus <> 0) 
-t.test(reg_model2$residuals)$estimate
+t.test(mod_log$residuals)$estimate
 ```
 
 Commentaire :
@@ -545,15 +460,8 @@ Commentaire :
 
     Cependant, ce test ne permet pas de conclure sur la forme de la distribution des résidus. Afin d’évaluer plus précisément l’hypothèse de normalité, un test de Shapiro-Wilk est mis en œuvre :
 
-    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-    shapiro.test(reg_model2$residuals)
-
-    # QQ-plot des résidus pour vérifier visuellement la normalité
-    qqnorm(
-      residuals(reg_model2),
-      main = "QQ-plot des résidus du modèle"
-    )
-    qqline(residuals(reg), col = "red")
+    ```{r}
+    shapiro.test(mod_log$residuals)
     ```
 
 Commentaires :
@@ -564,31 +472,17 @@ Commentaires :
 
     Ainsi, les résidus peuvent être considérés comme distribués normalement. Cette conclusion renforce la validité des tests statistiques usuels réalisés à partir du modèle estimé et contribue à confirmer la robustesse des résultats obtenus.
 
--   Le QQ-plot des résidus montre que la plupart des points suivent la droite théorique, ce qui suggère que les résidus de notre modèle sont approximativement distribués normalement. Cette observation visuelle confirme les résultats du test de Shapiro-Wilk et indique que l’hypothèse de normalité des erreurs est correcte, renforçant la fiabilité des tests statistiques effectués sur les coefficients du modèle.
+Le QQ-plot du panel ci-dessous confirme visuellement ce résultat : la plupart des points suivent la droite théorique.
 
-Nous pouvons ensuite vérifier l'hypothèse d'homoscédasticité, car elle est l'une des hypothèses des MCO à valider :
+Le même panel réunit les autres diagnostics du modèle retenu : résidus contre valeurs ajustées, échelle-localisation et distance de Cook.
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-plot(reg$fitted.values, reg_model2$residuals,
-     xlab = "Valeurs ajustées",
-     ylab = "Résidus")
-abline(h = 0)
+```{r}
+fig_diagnostic_residus(mod_log)
 ```
 
-Nous observons à travers ce graphique représentant les résidus en fonction des valeurs ajustées, qu'il n'y a pas de structure particulière, nous observons que le nuage de points est dispersé et donc, aléatoire. Les résidus sont globalement centrés autour de 0. Nous ne constastons pas d'observations qui pourrait invalider l'hypothèse d'homoscédasticité, donc les estimations obtenues par la méthode des moindres carrés ordinaires semblent appropriées concernant la variance des erreurs.
+Le nuage des résidus contre les valeurs ajustées ne montre pas de structure particulière et les points restent centrés autour de zéro, ce qui va dans le sens de l'homoscédasticité. La distance de Cook fait toutefois ressortir quelques observations nettement au-dessus du seuil de 4/n.
 
-Identification des points influents :
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-#Distance de Cook 
-plot(reg_model2, which = 4) 
-#Résidus standardisés selon leur levier *
-plot(reg_model2, which = 5)
-```
-
-Commentaires :
-
--   A travers le graphique représentant la distance de Cook, nous observons une influence significative d'une observation. Afin d'évaluer la robustesse des résultats, le modèle peut être rééestimé en excluant les observations les plus influentes :
+Afin d'évaluer la robustesse des résultats, le modèle est réestimé en excluant ces observations influentes :
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Calcul du seuil de Cook (4/n)
@@ -596,11 +490,11 @@ n <- nrow(data)
 seuil_cook <- 4/n
 
 # Identification des individus
-aberrants <- which(cooks.distance(reg_model2) > seuil_cook)
+aberrants <- which(cooks.distance(mod_log) > seuil_cook)
 aberrants
 data_clean <- data[-aberrants, ]
 
-reg_clean <-
+mod_clean <-
   lm(   
     DENS_MED_LIB ~ DENSITE + 
     log(PART_75) + 
@@ -613,7 +507,7 @@ reg_clean <-
     DENS_KIN,   
     data = data_clean) 
 
-summary(reg_clean)$r.squared
+summary(mod_clean)$r.squared
 
 ```
 
@@ -622,9 +516,9 @@ Avec le retrait des individus aberrants, nous constatons une nette amélioration
 Nous pouvons ensuite, à partir de notre jeu de données nettoyé, effectuer le test de Breusch-Pagan pour détecter l'hétéroscédasticité dans notre modèle.
 
 ```{r, echo=FALSE}
-bptest(reg_clean)
+bptest(mod_clean)
 
-bptest(reg_clean, ~ fitted(reg_clean) + I(fitted(reg_clean)^2))
+bptest(mod_clean, ~ fitted(mod_clean) + I(fitted(mod_clean)^2))
 ```
 
 La variance des résidus est modélisée en fonction de l'ensemble des variables explicatives, ici nous avons le test de Breusch-Pagan qui ne conduit pas au rejet de l'hypothèse nulle d'homoscédasticité au seuil de 5%. En se concentreant sur les valeurs ajustées, nous acceptons assez largement l'hypothèse au seuil de 5%.
@@ -638,7 +532,7 @@ Nous comparons ici l’estimation par Moindres Carrés Ordinaires avec une estim
 ```{r, echo=FALSE, message=FALSE}
 #on suppose que la variance des erreurs est proportionnelle à PART_75
 #on pondère par 1 / PART_75
-reg_MCG <- lm(
+mod_mcg <- lm(
   DENS_MED_LIB ~ DENSITE + log(PART_75) + TAUX_ACTIV + 
     log(PART_IMPOT) + PART_TRANS_COMM + UNIV + PART_PHARMA + 
     DENS_INF + DENS_KIN,
@@ -648,7 +542,7 @@ reg_MCG <- lm(
 
 # *comparaison 
 stargazer(
-  reg_clean, reg_MCG,
+  mod_clean, mod_mcg,
   header = FALSE,
   title = "Comparaison de l'estimation MCO et MCG",
   type = "text",        
@@ -662,6 +556,12 @@ stargazer(
 ```
 
 La comparaison montre que la plupart des coefficients restent cohérents, et que les variables clés conservent leur significativité. Cela confirme la robustesse du modèle.
+
+Le graphique ci-dessous synthétise les coefficients du modèle retenu (après retrait des points influents), classés par ampleur et colorés selon leur signe et leur significativité.
+
+```{r}
+fig_coefficients(mod_clean)
+```
 
 En conclusion, les vérifications effectuées confirment la robustesse de notre modèle. La moyenne des résidus est extrêmement proche de zéro, les résidus suivent approximativement une distribution normale, comme le confirment le test de Shapiro-Wilk. Le graphique des résidus en fonction des valeurs ajustées montre une dispersion aléatoire, ce qui montre que l’hypothèse d’homoscédasticité est globalement respectée. Enfin, le test de Breusch-Pagan montre que l’hypothèse nulle d’homoscédasticité n’est pas rejetée au seuil de 5%. Cela confirme que la variance des erreurs ne dépend pas de manière significative des valeurs prédites et que notre modèle peut être considéré comme fiable.
 
@@ -685,17 +585,17 @@ Ensuite, un second modèle avec des interactions entre plusieurs variables afin 
 
 ```{r, echo=FALSE}
 # Test de 2 modèles
-reg_nl <- lm(
+mod_quad <- lm(
   DENS_MED_LIB ~ DENSITE + UNIV + 
     log(PART_75) + TAUX_ACTIV + PART_TRANS_COMM + I(PART_PHARMA^2) + DENS_KIN,
   data = data_clean
 )
-summary(reg_nl)$coefficients
+summary(mod_quad)$coefficients
 
-reg_n2 <- lm(DENS_MED_LIB ~ TAUX_ACTIV * DENS_KIN + I(TAUX_ACTIV^2) + 
+mod_interact <- lm(DENS_MED_LIB ~ TAUX_ACTIV * DENS_KIN + I(TAUX_ACTIV^2) + 
                     log(PART_TRANS_COMM) + UNIV*log(PART_PHARMA) + I(DENS_KIN^2),
                     data = data_clean)
-summary(reg_n2)$coefficients
+summary(mod_interact)$coefficients
 ```
 
 Les modèles montrent que la densité de pharmacies influence la densité de médecins libéraux de manière non linéaire, ce qui justifie l’ajout du terme quadratique pour cette variable.
@@ -734,6 +634,12 @@ Cela nous indique qu’un modèle simple avec quelques transformations permet de
 
 : Synthèse des transformations de variables
 
+```{r}
+fig_comparaison_r2()
+```
+
+Le graphique confirme que le gain d'ajustement au-delà du modèle logarithmique est marginal, et que les spécifications avec interactions dégradent même légèrement le R^2^.
+
 #### Changement structurel
 
 Nous allons observer si la structure du modèle change selon la présence d'une université ou non, à travers un test de Chow :
@@ -744,28 +650,28 @@ data_sans_univ <- data[data$UNIV == "Aucune", ]
 data_avec_univ <- data[data$UNIV == "Présente", ]
 
 # Estimation des modèles sur les sous-échantillons
-modele_sans_univ <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
+mod_sans_univ <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
                           PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
                           DENS_INF + DENS_KIN,
                         data = data_sans_univ)
-scr_sans <- sum(modele_sans_univ$residuals^2)
+scr_sans <- sum(mod_sans_univ$residuals^2)
 
-modele_avec_univ <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
+mod_avec_univ <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
                           PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
                           DENS_INF + DENS_KIN,
                         data = data_avec_univ)
-scr_avec <- sum(modele_avec_univ$residuals^2)
+scr_avec <- sum(mod_avec_univ$residuals^2)
 
 # Modèle sur l'ensemble de l'échantillon
-modele_total <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
+mod_total <- lm(DENS_MED_LIB ~ DENSITE + PART_75 + TAUX_ACTIV +
                      PART_IMPOT + PART_TRANS_COMM + PART_PHARMA +
                      DENS_INF + DENS_KIN + UNIV,
                    data = data)
-scr_total <- sum(modele_total$residuals^2)
+scr_total <- sum(mod_total$residuals^2)
 
 # Degrés de liberté
-ddl_n <- (modele_total$df.residual - (modele_sans_univ$df.residual + modele_avec_univ$df.residual))
-ddl_d <- modele_sans_univ$df.residual + modele_avec_univ$df.residual
+ddl_n <- (mod_total$df.residual - (mod_sans_univ$df.residual + mod_avec_univ$df.residual))
+ddl_d <- mod_sans_univ$df.residual + mod_avec_univ$df.residual
 
 # Statistique F et p-value
 FChow <- ((scr_total - (scr_sans + scr_avec)) / ddl_n) / ((scr_sans + scr_avec) / ddl_d)
@@ -788,9 +694,9 @@ Le test de Chow indique qu'il n'y a pas de changement structurel significatif se
 
     Nos analyses montrent que la densité de médecins libéraux est principalement influencée par :
 
-    Le dynamisme économique du territoire (taux d’activité de la population), la présence d’infrastructures universitaires et de santé (universités, pharmacies, densité de kinésithérapeutes)., l’usage des transports en commun, avec un effet plus modéré.
+    Le dynamisme économique du territoire (taux d’activité de la population), la présence d’infrastructures universitaires et de santé (universités, pharmacies, densité de kinésithérapeutes), et l’usage des transports en commun, avec un effet plus modéré.
 
-    De plus, l’introduction de termes quadratiques et d’interactions a mis en évidence que l’effet de certaines variables, comme le taux d’activité varie selon leur niveau, et que le dynamisme économique et la présence de professionnels médicaux autre que les médecins, se renforcent mutuellement. Le test de Chow a également montré que la structure du modèle diffère entre territoires avec ou sans université.
+    De plus, l’introduction de termes quadratiques et d’interactions a mis en évidence que l’effet de certaines variables, comme le taux d’activité, varie selon leur niveau, et que le dynamisme économique et la présence de professionnels de santé autres que les médecins se renforcent mutuellement. Le test de Chow, lui, ne détecte pas de rupture structurelle : les mêmes déterminants opèrent dans les territoires avec et sans université.
 
 -   Contributions du mémoire, apports scientifiques et/ou applicatifs
 
@@ -800,17 +706,11 @@ Le test de Chow indique qu'il n'y a pas de changement structurel significatif se
 
     Une piste d’amélioration serait d’étudier l’évolution de la densité de médecins sur plusieurs années. Cela permettrait de mieux comprendre comment l’offre de soins change dans le temps et d’identifier les tendances ou dynamiques qui ne sont pas visibles avec une seule année de données. Ce type d’analyse pourrait aider à anticiper les besoins futurs et à adapter les politiques d’aménagement des territoires.
 
-# **Visualisations**
+# Cartographie
 
-```{r}
-fig_histogramme_densite(data)
-fig_distributions_comparees(data)
-fig_correlation(data)
-fig_nuages_log(data)
-fig_diagnostic_residus(reg_model2)
-fig_comparaison_r2()
-fig_coefficients(reg_clean)
+Les deux cartes situent les résultats dans l'espace : la première montre la densité de médecins libéraux par zone d'emploi, la seconde superpose le contour des zones dotées d'une faculté de médecine.
 
+```{r, fig.width=8, fig.height=7}
 fond <- charger_fond_carte()
 carte_densite_medecins(fond, data)
 carte_universites(fond, data)

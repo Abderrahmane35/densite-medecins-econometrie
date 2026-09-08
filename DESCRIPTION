@@ -1,0 +1,32 @@
+Package: densitemedecins
+Title: Facteurs explicatifs de la densite de medecins liberaux en France
+Version: 1.0.0
+Authors@R:
+    person("Abderrahmane", "Mamoun", email = "abderrahmane.mamoun@univ-rennes.fr",
+           role = c("aut", "cre"))
+Description: Analyse econometrique (MCO) de la densite de medecins generalistes
+    liberaux sur les zones d'emploi francaises. Ce depot n'est pas un package
+    installable : le fichier sert uniquement a declarer les dependances du
+    rapport src/Projet.Rmd (installables via remotes::install_deps()).
+Encoding: UTF-8
+Imports:
+    broom,
+    car,
+    dplyr,
+    ggcorrplot,
+    ggdist,
+    ggplot2,
+    gridExtra,
+    knitr,
+    lmtest,
+    patchwork,
+    rmarkdown,
+    rmdformats,
+    scales,
+    sf,
+    stargazer,
+    stringi,
+    tidyr
+Suggests:
+    showtext,
+    sysfonts

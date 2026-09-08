@@ -8,13 +8,12 @@ library(dplyr)
 source("R/00_theme_palette.R")
 
 # ---- 1. Coefficient plot (figure centrale) ---------------------------------
-# Coefficients standardisés (variables continues centrées-réduites avant
-# régression, ou beta standardisés recalculés ex-post), classés par
-# importance absolue, avec IC à 95 %. Couleur = signe (accent/primaire),
-# gris pour les coefficients non significatifs au seuil de 5 %.
+# Coefficients estimés du modèle, classés par ampleur absolue, avec IC à 95 %.
+# Couleur selon le signe (positif / négatif) ; gris pour les coefficients non
+# significatifs au seuil de 5 %.
 
 fig_coefficients <- function(model, titre = "Déterminants de la densité de médecins libéraux",
-                              sous_titre = "Coefficients standardisés, intervalles de confiance à 95 %") {
+                              sous_titre = "Coefficients estimés, intervalles de confiance à 95 %") {
 
   tidy_mod <- broom::tidy(model, conf.int = TRUE) |>
     filter(term != "(Intercept)") |>
@@ -31,7 +30,8 @@ fig_coefficients <- function(model, titre = "Déterminants de la densité de mé
 
   ggplot(tidy_mod, aes(x = estimate, y = term, color = sens)) +
     geom_vline(xintercept = 0, color = pal$texte, linewidth = 0.35) +
-    geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.18, linewidth = 0.6) +
+    geom_errorbar(aes(xmin = conf.low, xmax = conf.high), orientation = "y",
+                  width = 0.18, linewidth = 0.6) +
     geom_point(size = 2.4) +
     scale_color_manual(values = c(
       "Effet positif"     = pal$primaire,
@@ -61,8 +61,8 @@ fig_universite_densite <- function(data) {
                             .width = c(0.5, 0.95), alpha = 0.85) +
       geom_boxplot(width = 0.14, outlier.shape = NA, alpha = 0.9,
                    position = position_nudge(x = -0.18)) +
-      geom_jitter(width = 0.05, height = 0, size = 1.1, alpha = 0.5,
-                  position = position_nudge(x = -0.32)) +
+      geom_point(size = 1.1, alpha = 0.5,
+                 position = position_jitter(width = 0.05, height = 0, seed = 1)) +
       scale_fill_manual(values = c("Aucune" = pal$secondaire, "Présente" = pal$accent)) +
       scale_color_manual(values = c("Aucune" = pal$primaire, "Présente" = pal$accent)) +
       coord_flip() +
@@ -91,12 +91,11 @@ fig_universite_densite <- function(data) {
   }
 }
 
-# ---- 3. Top / Bottom 15 territoires ---------------------------------------
+# ---- 3. Top / Bottom territoires -----------------------------------------
 # Barres divergentes autour de la moyenne nationale, triées, avec libellés
-# de zones. Nécessite une colonne identifiant le nom de la zone d'emploi
-# (à adapter selon le nom réel de la colonne, ex. LIBZE / NOM_ZE).
+# de zones. `id_col` est la colonne du nom de zone d'emploi (ZONE ici).
 
-fig_top_bottom_territoires <- function(data, id_col = "LIBZE", n = 15) {
+fig_top_bottom_territoires <- function(data, id_col = "ZONE", n = 15) {
   moyenne_nat <- mean(data[[ "DENS_MED_LIB" ]], na.rm = TRUE)
 
   df <- data |>

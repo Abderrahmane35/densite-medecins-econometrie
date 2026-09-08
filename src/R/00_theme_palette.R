@@ -1,19 +1,9 @@
-# ============================================================================
-# 00_theme_palette.R
-# Identité visuelle du projet — thème ggplot maison + palette
-#
-# Esprit : publications INSEE / DREES / Banque de France.
-# Le thème n'est PAS theme_minimal()/theme_bw()/theme_classic()/theme_light()
-# appelé tel quel : il part du squelette neutre theme_grey() et redéfinit
-# explicitement chaque élément (grille, typo, titres, marges) pour obtenir
-# un objet propre au projet, distinct des thèmes ggplot par défaut.
-# ============================================================================
+#  00_theme_palette.R
+# Identité visuelle du projet : palette restreinte et thème ggplot maison
 
 library(ggplot2)
 
-# ---- 1. Palette --------------------------------------------------------
-# Volontairement restreinte : un bleu-gris foncé (structure), un gris clair
-# (neutre / non-significatif), une seule couleur d'accent (mise en avant).
+# 1. Palette
 
 pal <- list(
   fond       = "#FFFFFF",
@@ -27,13 +17,7 @@ pal <- list(
 # Rampe monochrome pour cartes choroplèthes (du plus clair au primaire)
 pal_seq <- grDevices::colorRampPalette(c("#EEF1F5", pal$primaire))
 
-# Rampe divergente sobre (accent <-> blanc <-> primaire), pour résidus /
-# signes de coefficients — seulement 2 teintes de part et d'autre du blanc
-pal_div <- function(n = 11) {
-  grDevices::colorRampPalette(c(pal$accent, "#F5F3F0", pal$primaire))(n)
-}
-
-# ---- 2. Police -----------------------------------------------------------
+#  2. Police 
 # Pas de dépendance obligatoire à une police externe (portabilité GitHub /
 # Rmd -> HTML/PDF). Si `showtext` + une police type "Source Serif Pro" ou
 # "Public Sans" est disponible sur la machine, on l'active silencieusement ;
@@ -53,7 +37,7 @@ if (requireNamespace("showtext", quietly = TRUE) &&
   }, silent = TRUE)
 }
 
-# ---- 3. Thème --------------------------------------------------------------
+#  3. Thème 
 
 theme_zones_emploi <- function(base_size = 11,
                                 grid = c("y", "x", "both", "none"),
@@ -73,12 +57,12 @@ theme_zones_emploi <- function(base_size = 11,
       panel.background = element_rect(fill = pal$fond, color = NA),
       panel.border     = element_blank(),
 
-      # --- grille : discrète, jamais les deux directions à fond ---
+      #  grille : discrète, jamais les deux directions à fond 
       panel.grid.major.y = grid_major_y,
       panel.grid.major.x = grid_major_x,
       panel.grid.minor    = element_blank(),
 
-      # --- axes ---
+      #  axes 
       axis.line        = element_line(color = pal$texte, linewidth = 0.3),
       axis.ticks        = element_line(color = pal$texte, linewidth = 0.3),
       axis.ticks.length = unit(3, "pt"),
@@ -88,7 +72,7 @@ theme_zones_emploi <- function(base_size = 11,
       axis.title.x      = element_text(margin = margin(t = 8)),
       axis.title.y      = element_text(margin = margin(r = 8), angle = 90),
 
-      # --- titres hiérarchisés ---
+      #  titres hiérarchisés 
       plot.title    = element_text(family = .font_title, color = pal$primaire,
                                     face = "bold", size = rel(1.35), hjust = 0,
                                     margin = margin(b = 4)),
@@ -100,7 +84,7 @@ theme_zones_emploi <- function(base_size = 11,
       plot.caption.position = "plot",
       plot.title.position   = "plot",
 
-      # --- légende : discrète, sans cadre ---
+      #  légende 
       legend.position   = legend_position,
       legend.background = element_blank(),
       legend.key        = element_blank(),
@@ -108,7 +92,7 @@ theme_zones_emploi <- function(base_size = 11,
                                         size = rel(0.85)),
       legend.text       = element_text(color = pal$texte, size = rel(0.8)),
 
-      # --- facettes ---
+      # facettes 
       strip.background = element_rect(fill = pal$grille, color = NA),
       strip.text        = element_text(color = pal$primaire, face = "bold",
                                         size = rel(0.85), margin = margin(4,4,4,4)),
@@ -117,7 +101,7 @@ theme_zones_emploi <- function(base_size = 11,
     )
 }
 
-# Thème dédié aux cartes (pas d'axes, pas de grille)
+# Thème dédié aux cartes
 theme_carte_zones_emploi <- function(base_size = 11) {
   theme_zones_emploi(base_size = base_size, grid = "none", legend_position = "right") %+replace%
     theme(
@@ -129,7 +113,7 @@ theme_carte_zones_emploi <- function(base_size = 11) {
     )
 }
 
-# ---- 4. Scales pratiques --------------------------------------------------
+# 4. Scales pratiques 
 
 scale_color_zones_emploi <- function(...) {
   ggplot2::scale_color_manual(values = c(pal$primaire, pal$accent, pal$secondaire), ...)
